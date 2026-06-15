@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import {
   loadPromptFile,
   renderPrompt,
@@ -17,7 +17,7 @@ function createTempFile(content: string): string {
 }
 
 function cleanup(path: string): void {
-  rmSync(path.substring(0, path.lastIndexOf('/')), { recursive: true, force: true });
+  rmSync(dirname(path), { recursive: true, force: true });
 }
 
 describe('loadPromptFile', () => {
