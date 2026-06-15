@@ -8,8 +8,6 @@ governance:
       tool_name: servicenow_update_incident
     - server_alias: jira
       tool_name: jira_update_issue
-      params:
-        status: Closed
 
   approval_timeout_minutes: 15
 
