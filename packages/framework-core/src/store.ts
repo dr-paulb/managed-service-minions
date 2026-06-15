@@ -36,11 +36,15 @@ export interface PendingApproval {
 export interface SessionStore {
   createSession(session: Session): void;
   getSession(id: string): Session | undefined;
+  listSessions(): Session[];
   createMinionRun(run: MinionRun): void;
   updateMinionRun(id: string, patch: Partial<MinionRun>): void;
+  listMinionRunsBySession(sessionId: string): MinionRun[];
+  listMinionRunsByCorrelationRoot(root: string): MinionRun[];
   createApproval(approval: PendingApproval): void;
   getApproval(id: string): PendingApproval | undefined;
   resolveApproval(id: string, decision: 'approved' | 'denied'): void;
+  listPendingApprovals(): PendingApproval[];
   getCachedToolCall(key: string): unknown | undefined;
   setCachedToolCall(key: string, value: unknown): void;
 }

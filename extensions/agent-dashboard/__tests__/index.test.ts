@@ -1,9 +1,14 @@
 import { jest } from '@jest/globals';
 
-const mockStart = jest.fn<(client: unknown, port: number) => Promise<void>>();
+const mockStart = jest.fn<(store: unknown, port: number) => Promise<{ close: () => Promise<void>; port: number }>>();
+const mockCreateSqliteStore = jest.fn(() => ({ store: true }));
 
 jest.unstable_mockModule('../src/dashboard.js', () => ({
   startDashboardServer: mockStart,
+}));
+
+jest.unstable_mockModule('mcp-toolshed', () => ({
+  createSqliteStore: mockCreateSqliteStore,
 }));
 
 describe('agent-dashboard index', () => {
@@ -17,6 +22,7 @@ describe('agent-dashboard index', () => {
     exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
     errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockStart.mockReset();
+    mockCreateSqliteStore.mockReset();
   });
 
   afterEach(() => {
@@ -26,25 +32,25 @@ describe('agent-dashboard index', () => {
   });
 
   it('starts the server using default environment values', async () => {
-    delete process.env.GOOSE_ACP_URL;
-    delete process.env.GOOSE_ACP_TOKEN;
     delete process.env.DASHBOARD_PORT;
-    mockStart.mockResolvedValueOnce(undefined);
+    delete process.env.SQLITE_PATH;
+    mockStart.mockResolvedValueOnce({ close: () => Promise.resolve(), port: 3001 });
 
     await import('../src/index.js');
 
+    expect(mockCreateSqliteStore).toHaveBeenCalledWith('/data/dashboard.db');
     expect(mockStart).toHaveBeenCalledTimes(1);
     expect(mockStart.mock.calls[0][1]).toBe(3001);
   });
 
   it('starts the server using provided environment values', async () => {
-    process.env.GOOSE_ACP_URL = 'ws://example/acp';
-    process.env.GOOSE_ACP_TOKEN = 'secret';
     process.env.DASHBOARD_PORT = '4000';
-    mockStart.mockResolvedValueOnce(undefined);
+    process.env.SQLITE_PATH = '/tmp/dashboard.db';
+    mockStart.mockResolvedValueOnce({ close: () => Promise.resolve(), port: 4000 });
 
     await import('../src/index.js');
 
+    expect(mockCreateSqliteStore).toHaveBeenCalledWith('/tmp/dashboard.db');
     expect(mockStart).toHaveBeenCalledTimes(1);
     expect(mockStart.mock.calls[0][1]).toBe(4000);
   });

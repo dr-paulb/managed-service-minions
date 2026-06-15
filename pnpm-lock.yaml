@@ -47,6 +47,9 @@ importers:
       framework-core:
         specifier: workspace:*
         version: link:../../packages/framework-core
+      mcp-toolshed:
+        specifier: workspace:*
+        version: link:../mcp-toolshed
     devDependencies:
       '@types/jest':
         specifier: ^29.5.14
