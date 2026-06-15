@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "category": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": ["integer", "string"] },
+          "message": { "type": "string" },
+          "remediation": { "type": "string" }
+        },
+        "required": ["severity", "category", "message"]
+      }
+    }
+  },
+  "required": ["summary", "findings"]
+}

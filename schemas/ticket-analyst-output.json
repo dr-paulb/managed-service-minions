@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "ticket_id": { "type": "string" },
+    "title": { "type": "string" },
+    "status": { "type": "string" },
+    "assignee": { "type": ["string", "null"] },
+    "summary": { "type": "string" },
+    "related_items": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["ticket_id", "title", "status", "summary"]
+}

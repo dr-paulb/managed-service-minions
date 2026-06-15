@@ -1,0 +1,11 @@
+version: 1.0.0
+title: Ticket Poll
+description: Poll configured ticket queues and summarize new or changed items.
+parameters:
+  - key: queues
+    description: Comma-separated list of queue names or query IDs
+    input_type: text
+    requirement: required
+instructions: |
+  Use the ticket-analyst minion to poll each queue in {{queues}}.
+  Summarize new tickets, status changes, and blockers for the channel.

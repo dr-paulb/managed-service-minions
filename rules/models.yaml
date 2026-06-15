@@ -1,0 +1,36 @@
+tiers:
+  fast:
+    deployment: gpt-4o-mini
+    max_tokens_per_call: 4096
+  reasoning:
+    deployment: gpt-4.1
+    max_tokens_per_call: 16384
+  code_review:
+    deployment: claude-sonnet-4-8
+    max_tokens_per_call: 32768
+  code_generation:
+    deployment: gpt-4.1
+    max_tokens_per_call: 16384
+  security:
+    deployment: claude-sonnet-4-8
+    max_tokens_per_call: 32768
+
+minions:
+  orchestrator:
+    tier: reasoning
+    budget: 50000
+  code-explorer:
+    tier: reasoning
+    budget: 25000
+  code-reviewer:
+    tier: code_review
+    budget: 40000
+  pr-crafter:
+    tier: code_generation
+    budget: 40000
+  ticket-analyst:
+    tier: fast
+    budget: 10000
+  security-auditor:
+    tier: security
+    budget: 40000

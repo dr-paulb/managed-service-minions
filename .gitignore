@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Local state
+*.sqlite*
+.data/
+
+# Secrets and environment
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Test / coverage
+coverage/
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Azure deployment outputs
+*.bicepparam.local
+
+# Misc
+npm-debug.log*
+pnpm-debug.log*

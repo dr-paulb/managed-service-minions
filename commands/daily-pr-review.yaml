@@ -1,0 +1,11 @@
+version: 1.0.0
+title: Daily PR Review
+description: Review all open PRs in the configured repositories.
+parameters:
+  - key: repositories
+    description: Comma-separated list of repos
+    input_type: text
+    requirement: required
+instructions: |
+  Use the code-reviewer minion to review each open PR in {{repositories}}.
+  Post a summary to the channel.

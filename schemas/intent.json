@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": [
+        "ticket_lookup",
+        "ticket_summary",
+        "code_explore",
+        "code_review",
+        "pr_create",
+        "security_audit",
+        "ticket_fix_pr"
+      ]
+    },
+    "complexity": {
+      "type": "string",
+      "enum": ["simple", "complex"]
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["slack", "teams", "cli", "dashboard"]
+    },
+    "entities": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": ["intent", "complexity", "platform"]
+}

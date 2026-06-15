@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "pr_number": { "type": ["integer", "string"] },
+    "approved": { "type": "boolean" },
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["info", "warning", "critical"]
+          },
+          "file": { "type": "string" },
+          "line": { "type": ["integer", "string"] },
+          "message": { "type": "string" }
+        },
+        "required": ["severity", "message"]
+      }
+    }
+  },
+  "required": ["pr_number", "approved", "summary", "findings"]
+}

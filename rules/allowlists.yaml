@@ -1,0 +1,63 @@
+allowlists:
+  code_explorer:
+    github:
+      - search_repositories
+      - get_file_contents
+      - list_commits
+    ado:
+      - search_code
+      - get_item
+    filesystem:
+      - read_file
+      - list_directory
+  code_reviewer:
+    github:
+      - get_pr
+      - get_pr_diff
+      - create_pr_review
+      - create_pr_review_comment
+    ado:
+      - get_pr
+      - get_pr_diff
+      - create_pr_review
+    filesystem:
+      - read_file
+      - list_directory
+      - search_files
+  pr_create:
+    github:
+      - create_branch
+      - create_or_update_file
+      - create_pull_request
+    filesystem:
+      - read_file
+      - write_file
+      - edit_file
+  ticket_lookup:
+    servicenow:
+      - get_incident
+      - query_incidents
+    jira:
+      - get_issue
+      - search_issues
+    ado:
+      - get_item
+      - query_items
+  security_audit:
+    github:
+      - get_file_contents
+      - list_commits
+    filesystem:
+      - read_file
+      - list_directory
+      - search_files
+
+path_scopes:
+  code_explorer:
+    mode: allowlist
+    paths:
+      - /repo
+    deny:
+      - .git/
+      - node_modules/
+      - secrets/

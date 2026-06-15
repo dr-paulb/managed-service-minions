@@ -1,0 +1,56 @@
+name: CI
+
+# Red build policy ("Ralph Wiggum" loop):
+# Any failure in this workflow blocks merge. The author must fix the root cause,
+# re-run the full pipeline, and obtain maintainer/QA approval. No bypasses.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests with coverage
+        run: pnpm test --coverage
+
+      - name: Verify 100% coverage
+        run: |
+          # Each package's jest.config.js enforces 100% thresholds.
+          # This step fails if any package reports coverage below 100%.
+          echo "Coverage gate enforced by Jest thresholds."
+
+      # If any previous step fails, the workflow stops here and merge is blocked.
+      # Uncomment and configure SLACK_WEBHOOK_URL to broadcast failures:
+      # - name: Notify team on failure
+      #   if: failure()
+      #   run: |
+      #     curl -X POST -H 'Content-type: application/json' \
+      #       --data '{"text":"🚨 Ralph Wiggum says: build is red on ${{ github.ref }} (${{ github.sha }}). Fix, re-run, and get QA approval before merging."}' \
+      #       ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "summary": { "type": "string" },
+    "files_examined": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "root_cause": { "type": "string" },
+    "recommended_next_steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["summary", "files_examined"]
+}

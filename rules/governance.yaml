@@ -1,0 +1,32 @@
+governance:
+  destructive_actions:
+    - server_alias: github
+      tool_name: merge_pull_request
+    - server_alias: github
+      tool_name: delete_branch
+    - server_alias: ado
+      tool_name: merge_pr
+    - server_alias: ado
+      tool_name: close_work_item
+    - server_alias: servicenow
+      tool_name: close_incident
+    - server_alias: jira
+      tool_name: transition_issue
+      params:
+        status: Closed
+
+  approval_timeout_minutes: 15
+
+  rate_limits:
+    default:
+      requests_per_minute: 60
+      burst: 20
+
+  workspace_boundaries:
+    allowed_base_paths:
+      - /repo
+    deny_patterns:
+      - .git/
+      - node_modules/
+      - secrets/
+      - .env*
