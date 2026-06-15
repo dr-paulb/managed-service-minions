@@ -138,6 +138,142 @@ resource "azurerm_container_app" "slack_bot" {
   }
 }
 
+resource "azurerm_container_app" "toolshed" {
+  name                         = var.toolshed.name
+  resource_group_name          = var.resource_group_name
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  revision_mode                = "Single"
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.toolshed.identity_id]
+  }
+
+  template {
+    min_replicas = 1
+    max_replicas = 3
+
+    container {
+      name   = "toolshed"
+      image  = var.toolshed.image
+      cpu    = 0.5
+      memory = "1Gi"
+
+      dynamic "env" {
+        for_each = var.env_vars
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      dynamic "env" {
+        for_each = local.secret_keys
+        content {
+          name        = env.value
+          secret_name = local.secret_names[env.value]
+        }
+      }
+
+      liveness_probe {
+        transport = "TCP"
+        port      = 8080
+      }
+    }
+  }
+
+  dynamic "secret" {
+    for_each = local.secret_keys
+    content {
+      name  = local.secret_names[secret.value]
+      value = var.secrets[secret.value]
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image
+    ]
+  }
+}
+
+resource "azurerm_container_app" "dashboard" {
+  name                         = var.dashboard.name
+  resource_group_name          = var.resource_group_name
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  revision_mode                = "Single"
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.dashboard.identity_id]
+  }
+
+  ingress {
+    external_enabled = true
+    target_port      = var.dashboard.port
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
+  }
+
+  template {
+    min_replicas = 1
+    max_replicas = 3
+
+    container {
+      name   = "dashboard"
+      image  = var.dashboard.image
+      cpu    = 0.5
+      memory = "1Gi"
+
+      dynamic "env" {
+        for_each = var.env_vars
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      dynamic "env" {
+        for_each = local.secret_keys
+        content {
+          name        = env.value
+          secret_name = local.secret_names[env.value]
+        }
+      }
+
+      liveness_probe {
+        transport        = "HTTP"
+        port             = var.dashboard.port
+        path             = "/health"
+        interval_seconds = 30
+      }
+
+      readiness_probe {
+        transport        = "HTTP"
+        port             = var.dashboard.port
+        path             = "/health"
+        interval_seconds = 10
+      }
+    }
+  }
+
+  dynamic "secret" {
+    for_each = local.secret_keys
+    content {
+      name  = local.secret_names[secret.value]
+      value = var.secrets[secret.value]
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image
+    ]
+  }
+}
+
 resource "azurerm_container_app" "teams_bot" {
   name                         = var.teams_bot.name
   resource_group_name          = var.resource_group_name

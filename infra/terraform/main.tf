@@ -46,6 +46,8 @@ module "managed_identity" {
     orchestrator = "mi-orch-${local.base_name}"
     slack_bot    = "mi-slack-${local.base_name}"
     teams_bot    = "mi-teams-${local.base_name}"
+    dashboard    = "mi-dash-${local.base_name}"
+    toolshed     = "mi-toolshed-${local.base_name}"
   }
 }
 
@@ -172,6 +174,19 @@ module "container_apps" {
     name        = "ca-teamsbot-${var.environment}"
     identity_id = module.managed_identity.teams_bot_id
     image       = "${module.container_registry.login_server}/teams-bot:latest"
+  }
+
+  dashboard = {
+    name        = "ca-dashboard-${var.environment}"
+    identity_id = module.managed_identity.dashboard_id
+    image       = "${module.container_registry.login_server}/agent-dashboard:latest"
+    port        = 3001
+  }
+
+  toolshed = {
+    name        = "ca-toolshed-${var.environment}"
+    identity_id = module.managed_identity.toolshed_id
+    image       = "${module.container_registry.login_server}/mcp-toolshed:latest"
   }
 
   log_analytics_workspace_id = module.observability.workspace_id

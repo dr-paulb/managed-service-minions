@@ -23,6 +23,22 @@ mock_provider "azurerm" {
     }
   }
 
+  override_resource {
+    target = module.managed_identity.azurerm_user_assigned_identity.main["dashboard"]
+    values = {
+      id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-goosetest-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mi-dash-goosetest-test"
+      principal_id = "00000000-0000-0000-0000-000000000014"
+    }
+  }
+
+  override_resource {
+    target = module.managed_identity.azurerm_user_assigned_identity.main["toolshed"]
+    values = {
+      id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-goosetest-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mi-toolshed-goosetest-test"
+      principal_id = "00000000-0000-0000-0000-000000000015"
+    }
+  }
+
   override_data {
     target = module.keyvault.data.azurerm_client_config.current
     values = {
@@ -196,5 +212,28 @@ run "key_vault_has_soft_delete_and_rbac" {
   assert {
     condition     = module.keyvault.soft_delete_enabled == true
     error_message = "Key Vault must have soft delete enabled."
+  }
+}
+
+run "dashboard_app_has_ingress_and_health_probe" {
+  command = plan
+
+  assert {
+    condition     = module.container_apps.dashboard_ingress_external_enabled == true
+    error_message = "Dashboard container app must expose external ingress."
+  }
+
+  assert {
+    condition     = module.container_apps.dashboard_liveness_path == "/health"
+    error_message = "Dashboard container app must have a /health liveness probe."
+  }
+}
+
+run "toolshed_app_is_deployed" {
+  command = plan
+
+  assert {
+    condition     = module.container_apps.toolshed_name == "ca-toolshed-test"
+    error_message = "Toolshed container app should be deployed with the expected name."
   }
 }
