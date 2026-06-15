@@ -27,7 +27,7 @@ This plan turns the design documents in this repository — `../delivery-specifi
 - [ ] Milestone 2 — Phase 2 Minion Framework: orchestrator skill, intent classification, DAG decomposition, structured output schemas, and prompt-quality harness.
   - Status: In progress. Agent prompts and schemas are wired; remaining work is the prompt-quality harness and full integration tests for DAG execution.
 - [ ] Milestone 3 — Phase 3 Ticket and Review Pipelines: GitHub, Azure DevOps, ServiceNow, and Jira integrations; ticket→fix→PR flow; human approval gates.
-- [ ] Milestone 4 — Phase 4 Platform Hardening: Azure Bicep infrastructure, Container Apps, Service Bus, AI Foundry, observability, dashboard, and CI/CD.
+- [ ] Milestone 4 — Phase 4 Platform Hardening: Terraform infrastructure modules, Container Apps, Service Bus, AI Foundry, observability, dashboard, CI/CD, and `terraform test`.
 - [ ] Milestone 5 — Acceptance, disaster recovery, performance/chaos validation, and production handoff.
 
 ## Surprises & Discoveries
@@ -164,7 +164,7 @@ This plan creates a Goose **plugin** plus separately configured MCP **extensions
 - `extensions/agent-dashboard/` — dashboard backend MCP server.
 
 **Infrastructure and delivery:**
-- `infra/bicep/` — Azure infrastructure as code.
+- `infra/terraform/` — Azure infrastructure as code.
 - `test/` — unit, integration, prompt-quality, E2E, security, performance, and chaos tests.
 - `.github/workflows/` — CI/CD pipelines for the plugin and the extensions.
 
@@ -383,7 +383,9 @@ Implementation notes:
 Goal: Deploy the framework to Azure with infrastructure as code, observability, and CI/CD.
 
 What will exist at the end:
-- `infra/bicep/main.bicep` and modules for network, Container Apps environment, orchestrator app, bot apps, MCP sidecars, Service Bus, Storage, Key Vault, AI Foundry, Log Analytics, and Grafana.
+- `infra/terraform/main.tf` and child modules for resource group, networking, observability, managed identities, Key Vault, Storage, Service Bus, Container Registry, Container Apps, AI Foundry, and Grafana.
+- `infra/terraform/environments/dev/` thin wrapper with `terraform.tfvars`.
+- `infra/terraform/tests/main.tftest.hcl` mock-based Terraform tests covering naming, validation, and wiring assertions.
 - Dockerfiles for each MCP extension.
 - `.github/workflows/deploy-plugin.yml`, `deploy-toolshed.yml`, `deploy-slack-bot.yml`, `deploy-teams-bot.yml`, and `deploy-infra.yml`.
 - `extensions/agent-dashboard/` — an MCP extension or Goose app that provides Session Explorer, Correlation Tree, Live Minion Status, Tool Call Inspector, Prompt Viewer, and Governance Config views (ADR-018).
@@ -394,10 +396,10 @@ Implementation notes:
 - Container Apps scale rules: KEDA on Service Bus active message count; minimum 1 replica for chat bots during business hours; orchestrator scales 1–5 based on queue depth (ADR-011, ADR-012).
 - Service Bus uses topic `minion-tasks` with subscriptions per minion type; sessions are enabled and session ID is the root correlation ID.
 - Key Vault stores all secrets; containers use managed identity (`DefaultAzureCredential`). No secrets in environment variables except non-secret config.
-- AI Foundry model tiers are mapped in `infra/bicep/ai-foundry.bicep` and referenced by name from `rules/models.yaml` (ADR-010).
+- AI Foundry model tiers are mapped in `infra/terraform/modules/ai_foundry` (using `azapi`) and referenced by name from `rules/models.yaml` (ADR-010).
 - SQLite state is backed up to Blob Storage on a schedule and restored on container startup (ADR-009).
 - The dashboard reads from Table Storage and Log Analytics; it is optional for v1 operational readiness but required for acceptance criterion #6.
-- CI/CD uses OIDC federation to Azure, ACR build tasks, and `az containerapp update`. Infrastructure deployments use `what-if` in PR checks and require human approval for production (ADR-013).
+- CI/CD uses OIDC federation to Azure, ACR build tasks, and `az containerapp update`. Infrastructure deployments use `terraform plan` in PR checks and require human approval for production (ADR-013).
 
 ### Milestone 5 — Acceptance, Disaster Recovery, and Production Handoff
 
@@ -552,10 +554,14 @@ These commands assume you are at the repository root (`/Volumes/ExtDisk1/Minions
 10. Deploy infrastructure to a dev environment:
     ```bash
     az login
-    az deployment group create \
-      --resource-group goose-framework-dev \
-      --template-file infra/bicep/main.bicep \
-      --parameters environment=dev
+    cd infra/terraform
+    terraform init \
+      -backend-config="resource_group_name=<STATE_RG>" \
+      -backend-config="storage_account_name=<STATE_SA>" \
+      -backend-config="container_name=tfstate" \
+      -backend-config="key=dev.terraform.tfstate"
+    terraform plan -var-file=../environments/dev/terraform.tfvars
+    terraform apply -var-file=../environments/dev/terraform.tfvars
     ```
 
 11. Build and deploy an MCP extension:
@@ -591,7 +597,7 @@ The work is complete when the following behaviors are observable. These map dire
 
 7. **Failure handling.** Kill an orchestrator replica during a pipeline; KEDA respawns it, Service Bus redelivers the message, and the pipeline resumes from SQLite state without silent loss.
 
-8. **Azure deployment and DR.** `infra/bicep/main.bicep` deploys reproducibly to dev, staging, and production. Backup/restore of SQLite from Blob Storage is tested and documented.
+8. **Azure deployment and DR.** `infra/terraform/` deploys reproducibly to dev, staging, and production. Backup/restore of SQLite from Blob Storage is tested and documented.
 
 9. **Prompt quality gates.** A prompt change that fails the prompt-quality harness is blocked from merge. A canary prompt is rolled back if review acceptance drops.
 

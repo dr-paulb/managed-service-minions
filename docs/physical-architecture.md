@@ -30,7 +30,7 @@
 | **Private network** | All service-to-service traffic over VNet. No public IPs except Slack/Teams ingress. |
 | **Single region, zone-redundant** | One Azure region, services spread across availability zones. No multi-region in initial scope. |
 | **Right-size, not over-provision** | Start small. Scale with usage data. No pre-provisioned capacity beyond AI Foundry PTU (optional). |
-| **Immutable infrastructure** | All resources defined in Bicep. Deployed via GitHub Actions. No ClickOps. |
+| **Immutable infrastructure** | All resources defined in Terraform. Deployed via GitHub Actions. No ClickOps. |
 
 ---
 
@@ -567,17 +567,19 @@ Assumptions: 50 sessions/day, 150 minion runs/day, ~3,000 tool calls/day, busine
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryTextColor': '#1a1a1a', 'lineColor': '#555'}}}%%
 graph TB
-    main["main.bicep\n(entry point)"]
+    main["main.tf\n(root module)"]
     
     subgraph "modules/"
-        net["networking.bicep\nVNet, subnets, NSGs, private endpoints"]
-        ca["container-apps.bicep\nEnvironment, apps, revisions"]
-        sb["service-bus.bicep\nNamespace, topic, subscriptions"]
-        st["storage.bicep\nAccount, tables, containers, lifecycle"]
-        kv["key-vault.bicep\nVault, secrets, access policies"]
-        ai["ai-foundry.bicep\nHub, project, deployments"]
-        mon["monitor.bicep\nLog Analytics, Grafana, alerts"]
-        id["identity.bicep\nManaged identities, role assignments"]
+        net["networking\nVNet, subnets, NSGs"]
+        ca["container_apps\nEnvironment, apps, revisions"]
+        sb["service_bus\nNamespace, topic, subscriptions"]
+        st["storage\nAccount, tables, containers"]
+        kv["keyvault\nVault, RBAC"]
+        ai["ai_foundry\nHub, project, deployments"]
+        mon["observability\nLog Analytics"]
+        id["managed_identity\nUser-assigned identities"]
+        grafana["grafana\nManaged Grafana"]
+        acr["container_registry\nACR"]
     end
     
     main --> net
@@ -588,13 +590,16 @@ graph TB
     main --> ai
     main --> mon
     main --> id
+    main --> grafana
+    main --> acr
     
     ca --> net
     ca --> id
-    sb --> net
-    st --> net
-    kv --> net
-    ai --> net
+    ca --> mon
+    sb --> id
+    st --> id
+    kv --> id
+    ai --> id
     
     style main fill:#d5f5e3,stroke:#82c091,color:#1a1a1a
     style net fill:#d6eaf8,stroke:#7fb3d8,color:#1a1a1a
@@ -602,8 +607,21 @@ graph TB
     style id fill:#fadbd8,stroke:#e6a8a0,color:#1a1a1a
 ```
 
-**8 Bicep modules, one entry point.** `main.bicep` orchestrates the deployment by passing parameters to each module. Modules that require networking (Container Apps, Service Bus, Storage, Key Vault, AI Foundry) depend on `networking.bicep` for VNet + subnet IDs. `identity.bicep` is a dependency for Container Apps (managed identity assignment) and is run first.
+**11 Terraform modules, one root module.** `main.tf` orchestrates the deployment by calling child modules and passing dependencies. Modules that require networking (Container Apps) depend on `networking` for VNet + subnet IDs. `managed_identity` is a dependency for Container Apps, Key Vault, Storage, Service Bus, and AI Foundry role assignments.
 
-All infrastructure is version-controlled in the same Git repo as the application code. GitHub Actions runs `az deployment group create` with the appropriate parameter file (`dev.bicepparam`, `staging.bicepparam`, `prod.bicepparam`).
+All infrastructure is version-controlled in the same Git repo as the application code. GitHub Actions runs `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`, and `terraform test` inside `infra/terraform`. Deployments use `terraform plan` and `terraform apply` with environment-specific variable files (`environments/dev/terraform.tfvars`, etc.).
+
+### Terraform Workflow Summary
+
+| Command | Purpose | Location |
+|---|---|---|
+| `terraform fmt -recursive` | Format all `.tf` and `.tfvars` files | `infra/terraform` |
+| `terraform init -backend=false` | Initialize providers without remote state | `infra/terraform` |
+| `terraform validate` | Validate configuration | `infra/terraform` |
+| `terraform test` | Run mock-based integration tests | `infra/terraform` |
+| `terraform plan` | Preview changes | `infra/terraform` or `environments/dev` |
+| `terraform apply` | Apply changes | `infra/terraform` or `environments/dev` |
+
+Helper scripts are also exposed through `infra/package.json`: `pnpm --filter infra fmt`, `pnpm --filter infra validate`, `pnpm --filter infra test`, `pnpm --filter infra plan`, `pnpm --filter infra apply`.
 
 
