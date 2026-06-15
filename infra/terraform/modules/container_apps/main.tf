@@ -9,7 +9,8 @@ resource "azurerm_container_app_environment" "main" {
 }
 
 locals {
-  secret_keys = toset(keys(nonsensitive(var.secrets)))
+  secret_keys  = toset(keys(nonsensitive(var.secrets)))
+  secret_names = { for key in local.secret_keys : key => replace(lower(key), "/[^a-z0-9.-]/", "-") }
 }
 
 resource "azurerm_container_app" "orchestrator" {
@@ -45,7 +46,7 @@ resource "azurerm_container_app" "orchestrator" {
         for_each = local.secret_keys
         content {
           name        = env.value
-          secret_name = env.value
+          secret_name = local.secret_names[env.value]
         }
       }
     }
@@ -62,7 +63,7 @@ resource "azurerm_container_app" "orchestrator" {
       }
 
       authentication {
-        secret_name       = "SERVICE_BUS_CONNECTION_STRING"
+        secret_name       = local.secret_names["SERVICE_BUS_CONNECTION_STRING"]
         trigger_parameter = "connection"
       }
     }
@@ -71,7 +72,7 @@ resource "azurerm_container_app" "orchestrator" {
   dynamic "secret" {
     for_each = local.secret_keys
     content {
-      name  = secret.value
+      name  = local.secret_names[secret.value]
       value = var.secrets[secret.value]
     }
   }
@@ -116,7 +117,7 @@ resource "azurerm_container_app" "slack_bot" {
         for_each = local.secret_keys
         content {
           name        = env.value
-          secret_name = env.value
+          secret_name = local.secret_names[env.value]
         }
       }
     }
@@ -125,7 +126,7 @@ resource "azurerm_container_app" "slack_bot" {
   dynamic "secret" {
     for_each = local.secret_keys
     content {
-      name  = secret.value
+      name  = local.secret_names[secret.value]
       value = var.secrets[secret.value]
     }
   }
@@ -170,7 +171,7 @@ resource "azurerm_container_app" "teams_bot" {
         for_each = local.secret_keys
         content {
           name        = env.value
-          secret_name = env.value
+          secret_name = local.secret_names[env.value]
         }
       }
     }
@@ -179,7 +180,7 @@ resource "azurerm_container_app" "teams_bot" {
   dynamic "secret" {
     for_each = local.secret_keys
     content {
-      name  = secret.value
+      name  = local.secret_names[secret.value]
       value = var.secrets[secret.value]
     }
   }
