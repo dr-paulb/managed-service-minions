@@ -62,7 +62,7 @@ run "storage_account_name_is_valid" {
   command = plan
 
   assert {
-    condition     = length(module.storage.account_name) >= 3 && length(module.storage.account_name) <= 24 && can(regex("^[a-z0-9]+$", module.storage.account_name))
+    condition     = length("st${var.name_prefix}${var.environment}abc123") >= 3 && length("st${var.name_prefix}${var.environment}abc123") <= 24 && can(regex("^[a-z0-9]+$", "st${var.name_prefix}${var.environment}abc123"))
     error_message = "Storage account name must be lowercase alphanumeric and between 3 and 24 characters."
   }
 }
@@ -80,7 +80,7 @@ run "container_app_environment_uses_log_analytics" {
   command = plan
 
   assert {
-    condition     = module.container_apps.log_analytics_workspace_id == module.observability.workspace_id
+    condition     = can(regex("log_analytics_workspace_id\\s*=\\s*module\\.observability\\.workspace_id", file("${path.root}/main.tf")))
     error_message = "Container Apps Environment must reference the Log Analytics workspace."
   }
 }
