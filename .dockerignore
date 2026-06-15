@@ -1,0 +1,12 @@
+node_modules
+*/node_modules
+**/node_modules
+.git
+.terraform
+*.tfstate
+*.tfstate.*
+dist
+*/dist
+**/.DS_Store
+coverage
+*.log
