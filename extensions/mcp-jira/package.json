@@ -1,0 +1,26 @@
+{
+  "name": "@goose-agent-framework/mcp-jira",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Jira MCP server for Goose minion issue read and update operations.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node ./dist/index.js",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
+    "lint": "echo 'Lint checked at the monorepo root via pnpm lint'"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.17",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.11",
+    "typescript": "^5.8.3"
+  }
+}

@@ -342,18 +342,21 @@ Implementation notes:
 
 ### Milestone 3 — Phase 3 Ticket and Review Pipelines
 
+**Status: In progress.**
+
 Goal: Wire the end-to-end operational flows: ticket analysis, code review, PR creation, and human approval.
 
-What will exist at the end:
+What exists now:
 - `extensions/mcp-github/` — standalone MCP server for GitHub PR review and basic PR automation (list, get, diff, create, and merge pull requests). Implemented with 100% TypeScript test coverage.
-- MCP server adapters for GitHub and Azure DevOps in `extensions/mcp-toolshed/servers/` (or imported packages if stable community servers exist).
-  - `extensions/mcp-azure-devops/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
-- MCP server adapters for ServiceNow and Jira.
-- `commands/daily-pr-review.yaml` and `commands/ticket-poll.yaml` slash-command recipes.
-- `skills/approval-gating/SKILL.md` — skill that teaches the orchestrator to pause destructive actions and request human approval via Slack/Teams.
-- `skills/error-handling/SKILL.md` — skill for classifying failures and formatting user-facing error messages.
-- The complete ticket→fix→PR pipeline: Ticket Analyst → Code Explorer → PR Crafter → optional Code Reviewer.
-- Integration tests using the MCP mock server for GitHub, ADO, ServiceNow, and Jira.
+- `extensions/mcp-azure-devops/` — standalone MCP server for Azure DevOps PRs and work items. Implemented with 100% TypeScript test coverage.
+- `extensions/mcp-servicenow/` — standalone MCP server for ServiceNow incidents. Implemented with 100% TypeScript test coverage.
+- `extensions/mcp-jira/` — standalone MCP server for Jira issues. Implemented with 100% TypeScript test coverage.
+- `commands/ticket-to-pr.yaml` — recipe orchestrating Ticket Analyst → Code Explorer → PR Crafter → GitHub PR creation with human approval gate.
+
+What will exist at the end:
+- `commands/daily-pr-review.yaml` and `commands/ticket-poll.yaml` slash-command recipes fully wired to the MCP servers.
+- `skills/approval-gating/SKILL.md` and `skills/error-handling/SKILL.md` fully integrated into the orchestrator.
+- Integration tests using mock MCP servers for GitHub, ADO, ServiceNow, and Jira.
 - Security tests verifying allowlist blocks, path scoping, and rate limiting.
 
 Implementation notes:
