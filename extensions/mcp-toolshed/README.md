@@ -86,6 +86,32 @@ start the toolshed with `TOOLSHED_ADAPTERS` set to the JSON above. Minions can
 then call Azure DevOps tools such as `ado_get_pull_request`, `ado_list_work_items`,
 and `ado_update_work_item` through the toolshed.
 
+## Registering the ServiceNow MCP server
+
+The `extensions/mcp-servicenow` MCP server can be registered with the toolshed
+via the `TOOLSHED_ADAPTERS` environment variable:
+
+```json
+[
+  {
+    "alias": "servicenow",
+    "command": "node",
+    "args": ["/path/to/repo/extensions/mcp-servicenow/dist/index.js"],
+    "env": {
+      "SERVICENOW_INSTANCE": "<your-instance>",
+      "SERVICENOW_USERNAME": "<username>",
+      "SERVICENOW_PASSWORD": "<password>"
+    }
+  }
+]
+```
+
+After building the extension (`pnpm --filter @goose-agent-framework/mcp-servicenow build`),
+start the toolshed with `TOOLSHED_ADAPTERS` set to the JSON above. Minions can
+then call ServiceNow tools such as `servicenow_list_incidents`,
+`servicenow_get_incident`, `servicenow_update_incident`, and
+`servicenow_create_incident` through the toolshed.
+
 ## Registering the Jira MCP server
 
 The `extensions/mcp-jira` MCP server can be registered with the toolshed via the

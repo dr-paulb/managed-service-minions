@@ -31,6 +31,8 @@ This plan turns the design documents in this repository — `../delivery-specifi
 - [ ] Milestone 3 — Phase 3 Ticket and Review Pipelines: GitHub, Azure DevOps, ServiceNow, and Jira integrations; ticket→fix→PR flow; human approval gates.
   - [x] (2026-06-15) GitHub MCP server extension implemented in `extensions/mcp-github/` with PR list, PR details, diff, create, and merge tools; 100% TypeScript test coverage.
   - [x] (2026-06-15) Azure DevOps MCP server extension implemented in `extensions/mcp-azure-devops/` with PR and work-item tools; 100% TypeScript test coverage.
+  - [x] (2026-06-15) ServiceNow MCP server extension implemented in `extensions/mcp-servicenow/` with list, get, update, and create incident tools; 100% TypeScript test coverage.
+  - [x] (2026-06-15) Jira MCP server extension implemented in `extensions/mcp-jira/` with issue list, get, update, create, and comment tools; 100% TypeScript test coverage.
 - [ ] Milestone 4 — Phase 4 Platform Hardening: Terraform infrastructure modules, Container Apps, Service Bus, AI Foundry, observability, dashboard, CI/CD, and `terraform test`.
 - [ ] Milestone 5 — Acceptance, disaster recovery, performance/chaos validation, and production handoff.
 

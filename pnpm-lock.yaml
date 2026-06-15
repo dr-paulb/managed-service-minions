@@ -120,7 +120,7 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
-  extensions/mcp-jira:
+  extensions/mcp-servicenow:
     dependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.15.0
