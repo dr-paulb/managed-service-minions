@@ -111,3 +111,29 @@ start the toolshed with `TOOLSHED_ADAPTERS` set to the JSON above. Minions can
 then call ServiceNow tools such as `servicenow_list_incidents`,
 `servicenow_get_incident`, `servicenow_update_incident`, and
 `servicenow_create_incident` through the toolshed.
+
+## Registering the Jira MCP server
+
+The `extensions/mcp-jira` MCP server can be registered with the toolshed via the
+`TOOLSHED_ADAPTERS` environment variable:
+
+```json
+[
+  {
+    "alias": "jira",
+    "command": "node",
+    "args": ["/path/to/repo/extensions/mcp-jira/dist/index.js"],
+    "env": {
+      "JIRA_HOST": "<your-jira-host>",
+      "JIRA_EMAIL": "<your-email>",
+      "JIRA_API_TOKEN": "<your-api-token>"
+    }
+  }
+]
+```
+
+After building the extension (`pnpm --filter @goose-agent-framework/mcp-jira build`),
+start the toolshed with `TOOLSHED_ADAPTERS` set to the JSON above. Minions can
+then call Jira tools such as `jira_list_issues`, `jira_get_issue`,
+`jira_update_issue`, `jira_create_issue`, and `jira_add_comment` through the
+toolshed.

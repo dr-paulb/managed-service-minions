@@ -24,11 +24,15 @@ This plan turns the design documents in this repository — `../delivery-specifi
   - Delivered: all five minion agent prompts (`code-explorer`, `code-reviewer`, `pr-crafter`, `ticket-analyst`, `security-auditor`) plus `orchestrator.md` with role, model tier, allowlist, output schema, and system prompt.
   - Delivered: framework skills (`intent-classification`, `task-decomposition`, `delegate-management`, `result-synthesis`, `approval-gating`) with invocation rules, inputs, and outputs.
   - Delivered: `rules/allowlists.yaml`, `rules/governance.yaml`, and `rules/models.yaml` with per-minion tool lists, destructive-action gating, rate limits, path scopes, fallback behavior, and tier budgets.
-- [ ] Milestone 2 — Phase 2 Minion Framework: orchestrator skill, intent classification, DAG decomposition, structured output schemas, and prompt-quality harness.
-  - Status: In progress. Agent prompts and schemas are wired; remaining work is the prompt-quality harness and full integration tests for DAG execution.
+  - SQLite session store implementation exists in `extensions/mcp-toolshed/src/store.ts` (memory + SQLite backends) and is used by the toolshed for audit logs, minion runs, approvals, and caching.
+- [x] Milestone 2 — Phase 2 Minion Framework: orchestrator skill, intent classification, DAG decomposition, structured output schemas, and prompt-quality harness.
+  - Agent prompts, skills, rules, recipes, and structured output schemas implemented and merged.
+  - Prompt-quality harness added under `test/src/prompt-quality/` with 100% test coverage; supports required sections, forbidden phrases, length bounds, and baseline/candidate comparison.
 - [ ] Milestone 3 — Phase 3 Ticket and Review Pipelines: GitHub, Azure DevOps, ServiceNow, and Jira integrations; ticket→fix→PR flow; human approval gates.
   - [x] (2026-06-15) GitHub MCP server extension implemented in `extensions/mcp-github/` with PR list, PR details, diff, create, and merge tools; 100% TypeScript test coverage.
+  - [x] (2026-06-15) Azure DevOps MCP server extension implemented in `extensions/mcp-azure-devops/` with PR and work-item tools; 100% TypeScript test coverage.
   - [x] (2026-06-15) ServiceNow MCP server extension implemented in `extensions/mcp-servicenow/` with list, get, update, and create incident tools; 100% TypeScript test coverage.
+  - [x] (2026-06-15) Jira MCP server extension implemented in `extensions/mcp-jira/` with issue list, get, update, create, and comment tools; 100% TypeScript test coverage.
 - [ ] Milestone 4 — Phase 4 Platform Hardening: Terraform infrastructure modules, Container Apps, Service Bus, AI Foundry, observability, dashboard, CI/CD, and `terraform test`.
 - [ ] Milestone 5 — Acceptance, disaster recovery, performance/chaos validation, and production handoff.
 
@@ -291,6 +295,8 @@ Implementation notes:
 
 ### Milestone 2 — Phase 2 Minion Framework: orchestrator skill, DAG, schemas, and prompts
 
+**Status: Complete as of 2026-06-15.**
+
 Goal: Implement the orchestrator agent/skill and the five minion types defined in `../high-level-design.md` §5.
 
 What will exist at the end:
@@ -338,19 +344,21 @@ Implementation notes:
 
 ### Milestone 3 — Phase 3 Ticket and Review Pipelines
 
+**Status: In progress.**
+
 Goal: Wire the end-to-end operational flows: ticket analysis, code review, PR creation, and human approval.
 
-What will exist at the end:
+What exists now:
 - `extensions/mcp-github/` — standalone MCP server for GitHub PR review and basic PR automation (list, get, diff, create, and merge pull requests). Implemented with 100% TypeScript test coverage.
-- MCP server adapters for GitHub and Azure DevOps in `extensions/mcp-toolshed/servers/` (or imported packages if stable community servers exist).
-  - `extensions/mcp-azure-devops/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
-- `extensions/mcp-servicenow/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
-- MCP server adapters for ServiceNow and Jira.
-- `commands/daily-pr-review.yaml` and `commands/ticket-poll.yaml` slash-command recipes.
-- `skills/approval-gating/SKILL.md` — skill that teaches the orchestrator to pause destructive actions and request human approval via Slack/Teams.
-- `skills/error-handling/SKILL.md` — skill for classifying failures and formatting user-facing error messages.
-- The complete ticket→fix→PR pipeline: Ticket Analyst → Code Explorer → PR Crafter → optional Code Reviewer.
-- Integration tests using the MCP mock server for GitHub, ADO, ServiceNow, and Jira.
+- `extensions/mcp-azure-devops/` — standalone MCP server for Azure DevOps PRs and work items. Implemented with 100% TypeScript test coverage.
+- `extensions/mcp-servicenow/` — standalone MCP server for ServiceNow incidents. Implemented with 100% TypeScript test coverage.
+- `extensions/mcp-jira/` — standalone MCP server for Jira issues. Implemented with 100% TypeScript test coverage.
+- `commands/ticket-to-pr.yaml` — recipe orchestrating Ticket Analyst → Code Explorer → PR Crafter → GitHub PR creation with human approval gate.
+
+What will exist at the end:
+- `commands/daily-pr-review.yaml` and `commands/ticket-poll.yaml` slash-command recipes fully wired to the MCP servers.
+- `skills/approval-gating/SKILL.md` and `skills/error-handling/SKILL.md` fully integrated into the orchestrator.
+- Integration tests using mock MCP servers for GitHub, ADO, ServiceNow, and Jira.
 - Security tests verifying allowlist blocks, path scoping, and rate limiting.
 
 Implementation notes:

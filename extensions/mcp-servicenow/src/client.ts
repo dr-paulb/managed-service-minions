@@ -88,7 +88,7 @@ export function createServiceNowClient({
     },
 
     async getIncidentBySysId(sysId: string): Promise<unknown> {
-      return request('GET', `/${sysId}`);
+      return request('GET', `/${encodeURIComponent(sysId)}`);
     },
 
     async getIncidentByNumber(number: string): Promise<unknown> {
@@ -100,7 +100,7 @@ export function createServiceNowClient({
     },
 
     async updateIncident(sysId: string, fields: Record<string, unknown>): Promise<unknown> {
-      return request('PUT', `/${sysId}`, undefined, fields);
+      return request('PUT', `/${encodeURIComponent(sysId)}`, undefined, fields);
     },
 
     async createIncident(fields: Record<string, unknown>): Promise<unknown> {

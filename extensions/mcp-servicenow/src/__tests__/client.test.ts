@@ -73,6 +73,13 @@ describe('createServiceNowClient', () => {
       const result = await client.getIncidentBySysId('abc123');
       expect(result).toEqual({ result: { sys_id: 'abc123' } });
     });
+
+    it('URL-encodes the sys_id in the request path', async () => {
+      mockResponse({ ok: true, status: 200, text: '{}' });
+      await client.getIncidentBySysId('abc 123/xyz');
+      const [url] = fetchFn.mock.calls[0] as [string];
+      expect(url).toBe('https://testinstance.service-now.com/api/now/table/incident/abc%20123%2Fxyz');
+    });
   });
 
   describe('getIncidentByNumber', () => {
@@ -103,6 +110,13 @@ describe('createServiceNowClient', () => {
       const [, init] = fetchFn.mock.calls[0] as [string, RequestInit];
       expect(init.method).toBe('PUT');
       expect(JSON.parse(init.body as string)).toEqual({ state: '2' });
+    });
+
+    it('URL-encodes the sys_id when updating', async () => {
+      mockResponse({ ok: true, status: 200, text: '{}' });
+      await client.updateIncident('abc 123/xyz', { state: '2' });
+      const [url] = fetchFn.mock.calls[0] as [string];
+      expect(url).toBe('https://testinstance.service-now.com/api/now/table/incident/abc%20123%2Fxyz');
     });
   });
 

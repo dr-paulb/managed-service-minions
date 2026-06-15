@@ -144,7 +144,15 @@ describe('createServiceNowServer', () => {
     const response = await callTool('servicenow_get_incident', {});
     const parsed = parseText(response) as { success: boolean; error: string };
     expect(parsed.success).toBe(false);
-    expect(parsed.error).toContain('Either sys_id or number must be provided');
+    expect(parsed.error).toContain('Either sys_id or number must be provided (but not both)');
+  });
+
+  it('returns validation error when both sys_id and number are provided', async () => {
+    const response = await callTool('servicenow_get_incident', { sys_id: 'abc123', number: 'INC001' });
+    const parsed = parseText(response) as { success: boolean; error: string };
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).not.toContain(':');
+    expect(parsed.error).toContain('Either sys_id or number must be provided (but not both)');
   });
 
   it('returns validation errors for invalid limit type', async () => {
@@ -183,7 +191,7 @@ describe('createServiceNowServer', () => {
     const response = await callToolHandler({ params: { name: 'servicenow_get_incident' } });
     const parsed = parseText(response) as { success: boolean; error: string };
     expect(parsed.success).toBe(false);
-    expect(parsed.error).toContain('Either sys_id or number must be provided');
+    expect(parsed.error).toContain('Either sys_id or number must be provided (but not both)');
   });
 
   describe('startServiceNowServer', () => {

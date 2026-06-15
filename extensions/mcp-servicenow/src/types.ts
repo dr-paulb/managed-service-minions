@@ -18,8 +18,8 @@ export const getIncidentSchema = z
     sys_id: z.string().optional(),
     number: z.string().optional(),
   })
-  .refine((data) => data.sys_id !== undefined || data.number !== undefined, {
-    message: 'Either sys_id or number must be provided',
+  .refine((data) => (data.sys_id !== undefined) !== (data.number !== undefined), {
+    message: 'Either sys_id or number must be provided (but not both)',
   });
 
 export const updateIncidentSchema = z.object({

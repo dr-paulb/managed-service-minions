@@ -101,7 +101,7 @@ export function createServiceNowServer(client: ServiceNowClient): Server {
             const data = await client.getIncidentBySysId(input.sys_id);
             result = ok(data);
           } else {
-            const data = await client.getIncidentByNumber(input.number as string);
+            const data = await client.getIncidentByNumber(input.number!);
             result = ok(data);
           }
           break;
@@ -123,7 +123,11 @@ export function createServiceNowServer(client: ServiceNowClient): Server {
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        result = err(error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '));
+        result = err(
+          error.errors
+            .map((e) => (e.path.length ? `${e.path.join('.')}: ${e.message}` : e.message))
+            .join('; ')
+        );
       } else if (error instanceof Error) {
         result = err(error.message);
       } else {
