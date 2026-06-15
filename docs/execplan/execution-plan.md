@@ -349,6 +349,7 @@ What will exist at the end:
 - MCP server adapters for GitHub and Azure DevOps in `extensions/mcp-toolshed/servers/` (or imported packages if stable community servers exist).
   - `extensions/mcp-azure-devops/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
 - MCP server adapters for ServiceNow and Jira.
+  - `extensions/mcp-jira/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
 - `commands/daily-pr-review.yaml` and `commands/ticket-poll.yaml` slash-command recipes.
 - `skills/approval-gating/SKILL.md` — skill that teaches the orchestrator to pause destructive actions and request human approval via Slack/Teams.
 - `skills/error-handling/SKILL.md` — skill for classifying failures and formatting user-facing error messages.
