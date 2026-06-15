@@ -167,4 +167,21 @@ describe('comparePrompts', () => {
     cleanup(basePath);
     cleanup(candPath);
   });
+
+  it('falls back to base check name when candidate has no matching check', () => {
+    const basePath = createTempFile('baseline');
+    const candPath = createTempFile('candidate');
+
+    const scoreFn = (prompt: string): import('../prompt-quality/types.js').PromptScore => ({
+      passed: prompt === 'baseline',
+      total: 1,
+      score: prompt === 'baseline' ? 1 : 0,
+      checks: prompt === 'baseline' ? [{ name: 'custom-check', passed: true }] : [],
+    });
+
+    const result = comparePrompts(basePath, candPath, {}, {}, scoreFn);
+    expect(result.regressions).toEqual(['Regression in custom-check']);
+    cleanup(basePath);
+    cleanup(candPath);
+  });
 });
