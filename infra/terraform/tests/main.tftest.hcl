@@ -14,8 +14,7 @@ mock_provider "azurerm" {
   }
 
   override_resource {
-    target          = module.observability.azurerm_log_analytics_workspace.main
-    override_during = plan
+    target = module.observability.azurerm_log_analytics_workspace.main
     values = {
       id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-goosetest-test/providers/Microsoft.OperationalInsights/workspaces/la-goosetest-test"
     }
@@ -26,16 +25,14 @@ mock_provider "azapi" {}
 
 mock_provider "random" {
   override_resource {
-    target          = module.storage.random_string.storage_suffix
-    override_during = plan
+    target = module.storage.random_string.storage_suffix
     values = {
       result = "abc123"
     }
   }
 
   override_resource {
-    target          = module.container_registry.random_string.acr_suffix
-    override_during = plan
+    target = module.container_registry.random_string.acr_suffix
     values = {
       result = "xyz789"
     }
