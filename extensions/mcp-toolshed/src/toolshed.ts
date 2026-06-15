@@ -1,4 +1,5 @@
-import type { SessionStore, PendingApproval } from 'framework-core';
+import { randomUUID } from 'node:crypto';
+import type { SessionStore, PendingApproval, AuditEntry } from 'framework-core';
 import {
   type AllowlistConfig,
   type GovernanceConfig,
@@ -25,21 +26,6 @@ export interface ToolResult {
   approvalId?: string;
 }
 
-export interface AuditEntry {
-  timestamp: number;
-  correlationId: string;
-  minionType: string;
-  teamId: string;
-  serverAlias: string;
-  toolName: string;
-  params: unknown;
-  status: ToolResult['status'];
-  latencyMs: number;
-  error?: string;
-  retryAfterSeconds?: number;
-  approvalId?: string;
-}
-
 export interface ToolshedState {
   allowlists: AllowlistConfig;
   governance: GovernanceConfig;
@@ -47,7 +33,7 @@ export interface ToolshedState {
   adapters: Map<string, McpServerAdapter>;
   breakers: Map<string, CircuitBreaker>;
   rateLimiter: RateLimiter;
-  auditLogger: (entry: AuditEntry) => void;
+  auditLogger: (entry: AuditEntry) => void | Promise<void>;
   circuitBreakerConfig: CircuitBreakerConfig;
 }
 
@@ -141,7 +127,7 @@ export async function executeTool(
 
   const start = Date.now();
   const paramsRecord = typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : undefined;
-  const auditBase: Omit<AuditEntry, 'status' | 'latencyMs' | 'error' | 'retryAfterSeconds' | 'approvalId'> = {
+  const auditBase: Omit<AuditEntry, 'id' | 'status' | 'latencyMs' | 'error' | 'retryAfterSeconds' | 'approvalId'> = {
     timestamp: start,
     correlationId: ctx.correlationId,
     minionType: ctx.minionType,
@@ -153,6 +139,7 @@ export async function executeTool(
 
   function emit(result: ToolResult): ToolResult {
     const entry: AuditEntry = {
+      id: `audit_${randomUUID()}`,
       ...auditBase,
       status: result.status,
       latencyMs: Date.now() - start,
@@ -160,7 +147,12 @@ export async function executeTool(
       retryAfterSeconds: result.retryAfterSeconds,
       approvalId: result.approvalId,
     };
-    toolshedState.auditLogger(entry);
+    toolshedState.store.createAuditEntry(entry);
+    Promise.resolve()
+      .then(() => toolshedState.auditLogger(entry))
+      .catch((err) => {
+        console.error(`[audit] logger failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
     return result;
   }
 

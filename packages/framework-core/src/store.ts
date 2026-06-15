@@ -33,6 +33,22 @@ export interface PendingApproval {
   decidedAt?: number;
 }
 
+export interface AuditEntry {
+  id: string;
+  timestamp: number;
+  correlationId: string;
+  minionType: string;
+  teamId: string;
+  serverAlias: string;
+  toolName: string;
+  params: unknown;
+  status: string;
+  latencyMs: number;
+  error?: string;
+  retryAfterSeconds?: number;
+  approvalId?: string;
+}
+
 export interface SessionStore {
   createSession(session: Session): void;
   getSession(id: string): Session | undefined;
@@ -45,6 +61,8 @@ export interface SessionStore {
   getApproval(id: string): PendingApproval | undefined;
   resolveApproval(id: string, decision: 'approved' | 'denied'): void;
   listPendingApprovals(): PendingApproval[];
+  createAuditEntry(entry: AuditEntry): void;
+  listAuditEntries(filters?: { correlationId?: string; limit?: number; offset?: number }): AuditEntry[];
   getCachedToolCall(key: string): unknown | undefined;
   setCachedToolCall(key: string, value: unknown): void;
 }

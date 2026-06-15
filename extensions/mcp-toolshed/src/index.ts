@@ -7,7 +7,6 @@ export {
   createDefaultToolshedState,
   type ToolContext,
   type ToolResult,
-  type AuditEntry,
   type ToolshedState,
 } from './toolshed.js';
 export {
@@ -17,6 +16,7 @@ export {
   type Session,
   type MinionRun,
   type PendingApproval,
+  type AuditEntry,
 } from './store.js';
 export {
   loadAllowlists,
@@ -46,3 +46,11 @@ export {
   type ToolDefinition,
   type McpAdapterConfig,
 } from './adapter.js';
+export { createAzureTableAuditLogger, type AuditLogger } from './cloud-audit.js';
+export {
+  FileSystemArtifactStore,
+  AzureBlobArtifactStore,
+  createArtifactStoreFromEnv,
+  createInMemoryArtifactStore,
+  type ArtifactStore,
+} from './artifact-store.js';

@@ -31,14 +31,17 @@ describe('executeTool', () => {
   });
 
   it('blocks tools not on the allowlist', async () => {
+    const store = createMemoryStore();
     initializeToolshed(
       createDefaultToolshedState({
-        store: createMemoryStore(),
+        store,
         adapters: new Map(),
       })
     );
     const result = await executeTool(baseCtx, 'github', 'delete_repo', {});
     expect(result.status).toBe('blocked_by_allowlist');
+    expect(store.listAuditEntries()).toHaveLength(1);
+    expect(store.listAuditEntries()[0].status).toBe('blocked_by_allowlist');
   });
 
   it('handles non-object params', async () => {
@@ -213,6 +216,42 @@ describe('executeTool', () => {
     const result = await promise;
     expect(result.status).toBe('approval_timeout');
     jest.useRealTimers();
+  });
+
+  it('survives an async audit logger failure', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    initializeToolshed(
+      createDefaultToolshedState({
+        store: createMemoryStore(),
+        adapters: new Map(),
+        auditLogger: async () => {
+          throw new Error('audit sink offline');
+        },
+      })
+    );
+    const result = await executeTool(baseCtx, 'github', 'delete_repo', {});
+    expect(result.status).toBe('blocked_by_allowlist');
+    await new Promise<void>((resolve) => process.nextTick(resolve));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('audit sink offline'));
+    consoleSpy.mockRestore();
+  });
+
+  it('survives a synchronous audit logger failure with a non-error', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    initializeToolshed(
+      createDefaultToolshedState({
+        store: createMemoryStore(),
+        adapters: new Map(),
+        auditLogger: () => {
+          throw 'string failure';
+        },
+      })
+    );
+    const result = await executeTool(baseCtx, 'github', 'delete_repo', {});
+    expect(result.status).toBe('blocked_by_allowlist');
+    await new Promise<void>((resolve) => process.nextTick(resolve));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('string failure'));
+    consoleSpy.mockRestore();
   });
 
   it('returns cached results', async () => {

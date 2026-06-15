@@ -4,9 +4,10 @@ import type {
   Session,
   MinionRun,
   PendingApproval,
+  AuditEntry,
 } from 'framework-core';
 
-export { type SessionStore, type Session, type MinionRun, type PendingApproval };
+export { type SessionStore, type Session, type MinionRun, type PendingApproval, type AuditEntry };
 
 const require = createRequire(import.meta.url);
 
@@ -14,6 +15,7 @@ export function createMemoryStore(): SessionStore {
   const sessions = new Map<string, Session>();
   const runs = new Map<string, MinionRun>();
   const approvals = new Map<string, PendingApproval>();
+  const auditLog = new Map<string, AuditEntry>();
   const cache = new Map<string, unknown>();
 
   return {
@@ -56,6 +58,21 @@ export function createMemoryStore(): SessionStore {
     },
     listPendingApprovals(): PendingApproval[] {
       return Array.from(approvals.values()).filter((approval) => approval.decision === undefined);
+    },
+    createAuditEntry(entry: AuditEntry): void {
+      auditLog.set(entry.id, entry);
+    },
+    listAuditEntries(filters?: { correlationId?: string; limit?: number; offset?: number }): AuditEntry[] {
+      let entries = Array.from(auditLog.values()).sort((a, b) => b.timestamp - a.timestamp);
+      if (filters?.correlationId) {
+        entries = entries.filter((entry) => entry.correlationId === filters.correlationId);
+      }
+      const offset = filters?.offset ?? 0;
+      const limit = filters?.limit;
+      if (offset > 0 || limit !== undefined) {
+        entries = entries.slice(offset, limit !== undefined ? offset + limit : undefined);
+      }
+      return entries;
     },
     getCachedToolCall(key: string): unknown | undefined {
       return cache.get(key);
@@ -142,6 +159,25 @@ function initializeSchema(db: BetterSqlite3Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_pending_approvals_decision ON pending_approvals (decision);
 
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id TEXT PRIMARY KEY,
+      timestamp INTEGER NOT NULL,
+      correlation_id TEXT NOT NULL,
+      minion_type TEXT NOT NULL,
+      team_id TEXT NOT NULL,
+      server_alias TEXT NOT NULL,
+      tool_name TEXT NOT NULL,
+      params TEXT,
+      status TEXT NOT NULL,
+      latency_ms INTEGER NOT NULL,
+      error TEXT,
+      retry_after_seconds INTEGER,
+      approval_id TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_audit_log_correlation_id ON audit_log (correlation_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log (timestamp);
+
     CREATE TABLE IF NOT EXISTS tool_call_cache (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -171,6 +207,12 @@ function createSqliteSessionStore(db: BetterSqlite3Database): SessionStore {
   const selectApproval = db.prepare('SELECT * FROM pending_approvals WHERE id = ?');
   const selectPendingApprovals = db.prepare('SELECT * FROM pending_approvals WHERE decision IS NULL');
   const resolveApprovalStmt = db.prepare('UPDATE pending_approvals SET decision = ?, decided_at = ? WHERE id = ?');
+  const insertAuditEntry = db.prepare(
+    `INSERT INTO audit_log (id, timestamp, correlation_id, minion_type, team_id, server_alias, tool_name, params, status, latency_ms, error, retry_after_seconds, approval_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const selectAuditEntries = db.prepare('SELECT * FROM audit_log ORDER BY timestamp DESC');
+  const selectAuditEntriesByCorrelation = db.prepare('SELECT * FROM audit_log WHERE correlation_id = ? ORDER BY timestamp DESC');
   const selectCache = db.prepare('SELECT value FROM tool_call_cache WHERE key = ?');
   const insertCache = db.prepare('INSERT OR REPLACE INTO tool_call_cache (key, value) VALUES (?, ?)');
 
@@ -253,6 +295,32 @@ function createSqliteSessionStore(db: BetterSqlite3Database): SessionStore {
       const rows = selectPendingApprovals.all() as Record<string, unknown>[];
       return rows.map(rowToApproval);
     },
+    createAuditEntry(entry: AuditEntry): void {
+      insertAuditEntry.run(
+        entry.id,
+        entry.timestamp,
+        entry.correlationId,
+        entry.minionType,
+        entry.teamId,
+        entry.serverAlias,
+        entry.toolName,
+        entry.params == null ? null : JSON.stringify(entry.params),
+        entry.status,
+        entry.latencyMs,
+        entry.error ?? null,
+        entry.retryAfterSeconds ?? null,
+        entry.approvalId ?? null
+      );
+    },
+    listAuditEntries(filters?: { correlationId?: string; limit?: number; offset?: number }): AuditEntry[] {
+      const rows = filters?.correlationId
+        ? (selectAuditEntriesByCorrelation.all(filters.correlationId) as Record<string, unknown>[])
+        : (selectAuditEntries.all() as Record<string, unknown>[]);
+      const offset = filters?.offset ?? 0;
+      const limit = filters?.limit;
+      const slice = limit !== undefined ? rows.slice(offset, offset + limit) : rows.slice(offset);
+      return slice.map(rowToAuditEntry);
+    },
     getCachedToolCall(key: string): unknown | undefined {
       const row = selectCache.get(key) as { value: string } | undefined;
       if (!row) return undefined;
@@ -306,5 +374,32 @@ function rowToApproval(row: Record<string, unknown>): PendingApproval {
     timeoutAt: Number(row.timeout_at),
     decision: row.decision == null ? undefined : (String(row.decision) as 'approved' | 'denied'),
     decidedAt: row.decided_at == null ? undefined : Number(row.decided_at),
+  };
+}
+
+function rowToAuditEntry(row: Record<string, unknown>): AuditEntry {
+  const paramsRaw = row.params;
+  let params: unknown = paramsRaw;
+  if (typeof paramsRaw === 'string') {
+    try {
+      params = JSON.parse(paramsRaw);
+    } catch {
+      params = paramsRaw;
+    }
+  }
+  return {
+    id: String(row.id),
+    timestamp: Number(row.timestamp),
+    correlationId: String(row.correlation_id),
+    minionType: String(row.minion_type),
+    teamId: String(row.team_id),
+    serverAlias: String(row.server_alias),
+    toolName: String(row.tool_name),
+    params,
+    status: String(row.status),
+    latencyMs: Number(row.latency_ms),
+    error: row.error == null ? undefined : String(row.error),
+    retryAfterSeconds: row.retry_after_seconds == null ? undefined : Number(row.retry_after_seconds),
+    approvalId: row.approval_id == null ? undefined : String(row.approval_id),
   };
 }

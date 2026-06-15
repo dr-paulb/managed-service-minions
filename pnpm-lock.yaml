@@ -307,12 +307,21 @@ importers:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: ^22.15.17
         version: 22.19.21
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.19.21)
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.2.0
+      mcp-toolshed:
+        specifier: workspace:*
+        version: link:../extensions/mcp-toolshed
       ts-jest:
         specifier: ^29.3.2
         version: 29.4.11(@babel/core@7.29.7)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.29.7))(jest-util@29.7.0)(jest@29.7.0(@types/node@22.19.21))(typescript@5.9.3)

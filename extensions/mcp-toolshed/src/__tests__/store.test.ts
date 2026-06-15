@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { createMemoryStore, createSqliteStore, type PendingApproval } from '../store.js';
+import { createMemoryStore, createSqliteStore, type PendingApproval, type AuditEntry } from '../store.js';
 
 type Statement = {
   run(...params: unknown[]): { changes: number };
@@ -83,6 +83,59 @@ describe('store', () => {
       store.setCachedToolCall('key', { value: 42 });
       expect(store.getCachedToolCall('key')).toEqual({ value: 42 });
       expect(store.getCachedToolCall('missing')).toBeUndefined();
+    });
+
+    it('stores and lists audit entries', () => {
+      const store = createMemoryStore();
+      const entry: AuditEntry = {
+        id: 'e1',
+        timestamp: 1,
+        correlationId: 'corr_1',
+        minionType: 'code-explorer',
+        teamId: 'team-a',
+        serverAlias: 'github',
+        toolName: 'get_file_contents',
+        params: { path: '/repo/readme.md' },
+        status: 'success',
+        latencyMs: 10,
+      };
+      store.createAuditEntry(entry);
+      expect(store.listAuditEntries()).toHaveLength(1);
+      expect(store.listAuditEntries({ correlationId: 'corr_1' })[0]).toMatchObject(entry);
+      expect(store.listAuditEntries({ correlationId: 'other' })).toHaveLength(0);
+      expect(store.listAuditEntries({ limit: 0 })).toHaveLength(0);
+      expect(store.listAuditEntries({ offset: 1 })).toHaveLength(0);
+    });
+
+    it('sorts audit entries by descending timestamp', () => {
+      const store = createMemoryStore();
+      store.createAuditEntry({
+        id: 'e1',
+        timestamp: 1,
+        correlationId: 'corr_1',
+        minionType: 'code-explorer',
+        teamId: 'team-a',
+        serverAlias: 'github',
+        toolName: 'get_file_contents',
+        params: undefined,
+        status: 'success',
+        latencyMs: 10,
+      });
+      store.createAuditEntry({
+        id: 'e2',
+        timestamp: 3,
+        correlationId: 'corr_1',
+        minionType: 'code-explorer',
+        teamId: 'team-a',
+        serverAlias: 'github',
+        toolName: 'get_file_contents',
+        params: undefined,
+        status: 'success',
+        latencyMs: 10,
+      });
+      const entries = store.listAuditEntries();
+      expect(entries[0].id).toBe('e2');
+      expect(entries[1].id).toBe('e1');
     });
   });
 
@@ -416,6 +469,126 @@ describe('store', () => {
 
       const store = createSqliteStore(':memory:', DatabaseCtor);
       expect(store.listPendingApprovals()).toHaveLength(1);
+    });
+
+    it('creates and lists sqlite audit entries', () => {
+      const prepared = createStatement();
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      store.createAuditEntry({
+        id: 'e1',
+        timestamp: 1,
+        correlationId: 'corr_1',
+        minionType: 'code-explorer',
+        teamId: 'team-a',
+        serverAlias: 'github',
+        toolName: 'get_file_contents',
+        params: { path: '/repo/readme.md' },
+        status: 'success',
+        latencyMs: 10,
+        error: 'oops',
+        retryAfterSeconds: 5,
+        approvalId: 'appr_1',
+      });
+      store.createAuditEntry({
+        id: 'e2',
+        timestamp: 2,
+        correlationId: 'corr_2',
+        minionType: 'code-explorer',
+        teamId: 'team-a',
+        serverAlias: 'github',
+        toolName: 'get_file_contents',
+        params: undefined,
+        status: 'success',
+        latencyMs: 5,
+      });
+      expect(prepared.run).toHaveBeenCalled();
+    });
+
+    it('lists sqlite audit entries with correlation filter and pagination', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'e1',
+            timestamp: 1,
+            correlation_id: 'corr_1',
+            minion_type: 'code-explorer',
+            team_id: 'team-a',
+            server_alias: 'github',
+            tool_name: 'get_file_contents',
+            params: '{"path":"/repo/readme.md"}',
+            status: 'success',
+            latency_ms: 10,
+            error: 'boom',
+            retry_after_seconds: 7,
+            approval_id: 'appr_1',
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const entries = store.listAuditEntries({ correlationId: 'corr_1', limit: 1, offset: 0 });
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toMatchObject({ id: 'e1', correlationId: 'corr_1' });
+    });
+
+    it('lists all sqlite audit entries when no correlation filter is provided', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      expect(store.listAuditEntries()).toHaveLength(0);
+    });
+
+    it('maps invalid sqlite audit params json to the raw string', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'e1',
+            timestamp: 1,
+            correlation_id: 'corr_1',
+            minion_type: 'code-explorer',
+            team_id: 'team-a',
+            server_alias: 'github',
+            tool_name: 'get_file_contents',
+            params: 'not-json',
+            status: 'success',
+            latency_ms: 10,
+            error: null,
+            retry_after_seconds: null,
+            approval_id: null,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const entries = store.listAuditEntries();
+      expect(entries[0].params).toBe('not-json');
     });
 
     it('maps optional sqlite row fields', () => {

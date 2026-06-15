@@ -32,6 +32,8 @@ function makeStore(): SessionStore {
     getApproval: jest.fn().mockReturnValue(undefined),
     resolveApproval: jest.fn(),
     listPendingApprovals: jest.fn(),
+    createAuditEntry: jest.fn(),
+    listAuditEntries: jest.fn().mockReturnValue([]),
     getCachedToolCall: jest.fn(),
     setCachedToolCall: jest.fn(),
   };
