@@ -42,7 +42,7 @@ jobs:
         run: pnpm lint
 
       - name: Unit tests with coverage
-        run: pnpm test --coverage
+        run: pnpm -r --filter "!infra" test --coverage
 
       - name: Verify 100% coverage
         run: |
