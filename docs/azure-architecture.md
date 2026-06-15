@@ -656,15 +656,13 @@ GitHub Repo: org/goose-agent-framework
 
 ```
 .github/workflows/
-├── ci.yml              # PR: lint, test, preview deploy
-├── build.yml           # Build + push container images
-├── deploy-dev.yml      # Deploy to dev (on push to feature/*)
-├── deploy-staging.yml  # Deploy to staging (on merge to main)
-├── deploy-prod.yml     # Deploy to prod (manual approval after staging)
-├── destroy-dev.yml     # Tear down dev on PR close
-├── security-scan.yml   # Weekly container + dependency scan
-└── cost-report.yml     # Weekly cost summary to Teams
+├── ci.yml                 # PR: typecheck, build, lint, unit tests, Terraform fmt/validate/test
+├── terraform-plan.yml     # PR: Terraform plan for the target environment (OIDC)
+├── terraform-apply.yml    # Merge to main: Terraform apply for the target environment (OIDC, env protection)
+└── build.yml              # Build + push container images (future)
 ```
+
+See [`docs/terraform-bootstrap.md`](./terraform-bootstrap.md) for OIDC setup and backend bootstrap instructions.
 
 ---
 

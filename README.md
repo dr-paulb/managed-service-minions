@@ -296,7 +296,7 @@ terraform plan -var-file=environments/dev/terraform.tfvars
 terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
-See [`./docs/azure-architecture.md`](./docs/azure-architecture.md) and [`./docs/disaster-recovery.md`](./docs/disaster-recovery.md) for details.
+See [`./docs/azure-architecture.md`](./docs/azure-architecture.md), [`./docs/terraform-bootstrap.md`](./docs/terraform-bootstrap.md), and [`./docs/disaster-recovery.md`](./docs/disaster-recovery.md) for details.
 
 ---
 

@@ -35,7 +35,6 @@ logs/
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
 
 # Misc
 npm-debug.log*
