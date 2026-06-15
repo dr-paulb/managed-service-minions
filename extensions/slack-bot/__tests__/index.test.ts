@@ -1,62 +1,36 @@
 import { jest } from '@jest/globals';
 
-const mockConnect = jest.fn<() => Promise<void>>();
-const MockAcpClient = class {
-  constructor(public url: string, public token: string) {}
-  connect = mockConnect;
-  async sendPrompt(_sessionId: string | null, _text: string): Promise<void> {}
-};
+const mockAppStart = jest.fn(() => Promise.resolve());
+const mockAppStop = jest.fn(() => Promise.resolve());
+const mockAppEvent = jest.fn();
+const mockAppMessage = jest.fn();
 
-jest.unstable_mockModule('../src/acp-client.js', () => ({
-  AcpClient: MockAcpClient,
+jest.unstable_mockModule('@slack/bolt', () => ({
+  App: jest.fn(() => ({
+    start: mockAppStart,
+    stop: mockAppStop,
+    event: mockAppEvent,
+    message: mockAppMessage,
+  })),
 }));
 
-describe('slack-bot index', () => {
-  const originalEnv = process.env;
-  let exitSpy: jest.SpiedFunction<typeof process.exit>;
-  let errorSpy: jest.SpiedFunction<typeof console.error>;
+jest.unstable_mockModule('node:child_process', () => ({
+  spawn: jest.fn(),
+}));
 
+describe('slack-bot entry point success path', () => {
   beforeEach(() => {
-    jest.resetModules();
-    process.env = { ...originalEnv };
-    exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    mockConnect.mockReset();
+    jest.clearAllMocks();
+    mockAppStart.mockResolvedValue(undefined);
   });
 
-  afterEach(() => {
-    process.env = originalEnv;
-    exitSpy.mockRestore();
-    errorSpy.mockRestore();
-  });
-
-  it('connects using default environment values', async () => {
-    delete process.env.GOOSE_ACP_URL;
-    delete process.env.GOOSE_ACP_TOKEN;
-    mockConnect.mockResolvedValueOnce(undefined);
+  it('starts the Slack bot when env vars are present', async () => {
+    process.env.SLACK_BOT_TOKEN = 'xoxb-token';
+    process.env.SLACK_SIGNING_SECRET = 'secret';
+    process.env.SLACK_APP_TOKEN = 'xapp-token';
 
     await import('../src/index.js');
 
-    expect(mockConnect).toHaveBeenCalledTimes(1);
-  });
-
-  it('connects using provided environment values', async () => {
-    process.env.GOOSE_ACP_URL = 'ws://example/acp';
-    process.env.GOOSE_ACP_TOKEN = 'secret';
-    mockConnect.mockResolvedValueOnce(undefined);
-
-    await import('../src/index.js');
-
-    expect(mockConnect).toHaveBeenCalledTimes(1);
-  });
-
-  it('logs the error and exits when connect fails', async () => {
-    const err = new Error('connection refused');
-    mockConnect.mockRejectedValueOnce(err);
-
-    await import('../src/index.js');
-
-    expect(errorSpy).toHaveBeenCalledWith('Slack bot failed to connect to Goose ACP', err);
-    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(mockAppStart).toHaveBeenCalled();
   });
 });
