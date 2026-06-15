@@ -8,11 +8,39 @@ on:
   push:
     branches: [main]
     paths:
+      - 'packages/**'
+      - 'extensions/**'
+      - 'commands/**'
+      - 'agents/**'
+      - 'skills/**'
+      - 'rules/**'
+      - 'test/**'
       - 'infra/terraform/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.json'
+      - 'eslint.config.js'
+      - '.prettierrc'
   pull_request:
     branches: [main]
     paths:
+      - 'packages/**'
+      - 'extensions/**'
+      - 'commands/**'
+      - 'agents/**'
+      - 'skills/**'
+      - 'rules/**'
+      - 'test/**'
       - 'infra/terraform/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.json'
+      - 'eslint.config.js'
+      - '.prettierrc'
 
 permissions:
   contents: read
