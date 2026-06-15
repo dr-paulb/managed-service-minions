@@ -89,8 +89,10 @@ export function comparePrompts(
   const regressions: string[] = [];
   for (const baseCheck of baselineScore.checks) {
     const candidateCheck = candidateScore.checks.find((c) => c.name === baseCheck.name);
-    if (baseCheck.passed && candidateCheck && !candidateCheck.passed) {
-      regressions.push(candidateCheck.message ?? `Regression in ${candidateCheck.name}`);
+    if (baseCheck.passed && (!candidateCheck || !candidateCheck.passed)) {
+      regressions.push(
+        candidateCheck?.message ?? `Regression in ${candidateCheck?.name ?? baseCheck.name}`
+      );
     }
   }
 
