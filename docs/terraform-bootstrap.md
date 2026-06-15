@@ -78,7 +78,7 @@ terraform apply -var-file=terraform.tfvars
 
 ## 5. CI/CD workflows
 
-- `.github/workflows/terraform-plan.yml` runs `terraform plan` on every PR that touches `infra/terraform/**`.
+- `.github/workflows/terraform-plan.yml` always runs `terraform fmt` and `terraform validate` on PRs that touch `infra/terraform/**`. When the `dev` environment secrets are available, it also performs an authenticated `terraform plan`.
 - `.github/workflows/terraform-apply.yml` runs `terraform apply` after a merge to `main`.
 
-Both workflows use OIDC and the `dev` GitHub Environment. They will not run until the secrets above are configured.
+Both workflows use OIDC and the `dev` GitHub Environment. Configure the secrets above before expecting authenticated plan/apply steps to run.
