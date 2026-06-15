@@ -34,7 +34,73 @@ This plan turns the design documents in this repository — `../delivery-specifi
   - [x] (2026-06-15) ServiceNow MCP server extension implemented in `extensions/mcp-servicenow/` with list, get, update, and create incident tools; 100% TypeScript test coverage.
   - [x] (2026-06-15) Jira MCP server extension implemented in `extensions/mcp-jira/` with issue list, get, update, create, and comment tools; 100% TypeScript test coverage.
 - [ ] Milestone 4 — Phase 4 Platform Hardening: Terraform infrastructure modules, Container Apps, Service Bus, AI Foundry, observability, dashboard, CI/CD, and `terraform test`.
+  - [x] Terraform modules and `terraform test` suite implemented for dev environment.
+  - [ ] Container Apps module needs dashboard and toolshed apps, health probes, and production-ready sizing.
+  - [ ] No container images or image CI/CD pipeline exists yet.
+  - [ ] CI only triggers on `infra/terraform/**` changes; TypeScript/package changes are not gated.
+  - [ ] No integration/E2E test stage, security scanning, or multi-environment promotion.
 - [ ] Milestone 5 — Acceptance, disaster recovery, performance/chaos validation, and production handoff.
+
+## Remaining Work
+
+The following items are the gaps between the current merged codebase and a production-ready v1. They are grouped by workstream and should be delivered as PRs.
+
+### CI/CD and Deployment
+
+1. Fix `.github/workflows/ci.yml` triggers so it runs on changes to `packages/**`, `extensions/**`, `commands/**`, `agents/**`, `skills/**`, `rules/**`, `test/**`, and root toolchain files — not only `infra/terraform/**`.
+2. Add Dockerfiles for every runnable component:
+   - `extensions/mcp-toolshed`
+   - `extensions/mcp-github`
+   - `extensions/mcp-azure-devops`
+   - `extensions/mcp-servicenow`
+   - `extensions/mcp-jira`
+   - `extensions/slack-bot`
+   - `extensions/teams-bot`
+   - `extensions/agent-dashboard`
+3. Add a container image build/push workflow (ACR login, build matrix, tag with commit SHA and `latest`).
+4. Add a deployment workflow that updates Azure Container Apps with the newly pushed images.
+5. Add an integration/E2E test job that stands up the toolshed + one MCP server and exercises a recipe.
+6. Add dependency audit, secret scanning, and container image vulnerability scanning.
+
+### Terraform Platform Hardening
+
+1. Add `agent-dashboard` and `mcp-toolshed` Container Apps to `modules/container_apps`.
+2. Add health/readiness probes to all Container Apps.
+3. Commit a default `ai_model_deployments` configuration for dev (e.g., GPT-4o mini) in `infra/terraform/environments/dev/terraform.tfvars`.
+4. Add staging and prod environment directories under `infra/terraform/environments/`.
+5. Add geo-redundant storage and a documented backup/restore policy for SQLite state.
+6. Add Log Analytics queries and/or Grafana dashboard definitions for minion status, tool-call audit, and cost.
+
+### Chat Ingress and Dashboard
+
+1. Replace the Slack/Teams ACP stubs with real event adapters:
+   - Slack Bolt app with signature verification, event parsing, thread-aware replies, and interactive approval buttons.
+   - Teams bot with equivalent Bot Framework adapter.
+2. Wire both bots to invoke Goose with the orchestrator skill, toolshed, and the requested recipe.
+3. Build the dashboard backend (`extensions/agent-dashboard`):
+   - REST endpoints for session list, minion runs, correlation tree, pending approvals, and health.
+   - Read from the SQLite session store.
+   - Optional: basic HTML/JS frontend or serve it from the same container.
+
+### Runtime Governance and Approvals
+
+1. Build a runtime approval tool/gate that the toolshed can call before executing destructive actions.
+2. Implement timeout, expiry, and decision persistence in the session store.
+3. Integrate approval requests with Slack/Teams interactive messages and the dashboard.
+4. Align `rules/allowlists.yaml` and `rules/governance.yaml` with the actual MCP tool names exposed by `mcp-github`, `mcp-azure-devops`, `mcp-servicenow`, and `mcp-jira`.
+
+### Audit and Cloud Storage
+
+1. Add an `audit_log` table to the SQLite schema or write audit events to Azure Table Storage.
+2. Update `extensions/mcp-toolshed` to persist every tool-call audit record durably, not only to stdout.
+3. Add large-artifact blob storage support for minion outputs and session backups.
+
+### Integration, Acceptance, and Handoff
+
+1. Validate the `ticket-to-pr` recipe end-to-end against a real repository and ticket system (or recorded mocks).
+2. Add prompt-quality baselines for the new recipes.
+3. Add chaos/performance tests and a disaster-recovery runbook.
+4. Write a production handoff checklist and runbook.
 
 ## Surprises & Discoveries
 
