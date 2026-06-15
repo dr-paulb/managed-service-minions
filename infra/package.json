@@ -7,7 +7,7 @@
   "scripts": {
     "fmt": "cd terraform && terraform fmt -recursive",
     "validate": "cd terraform && terraform init -backend=false && terraform validate",
-    "test": "cd terraform && terraform test",
+    "test": "cd terraform && sh -c 'terraform test' --",
     "plan": "cd terraform && terraform plan",
     "apply": "cd terraform && terraform apply"
   },
