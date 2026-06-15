@@ -1,65 +1,49 @@
 allowlists:
   code_explorer:
     github:
-      - search_repositories
-      - get_file_contents
-      - list_commits
-    ado:
-      - search_code
-      - get_item
-    filesystem:
-      - read_file
-      - list_directory
-      - search_files
+      - github_list_pull_requests
+      - github_get_pull_request
+      - github_get_pull_request_diff
+      - github_get_file_contents
+    azure_devops:
+      - ado_list_pull_requests
+      - ado_get_pull_request
+      - ado_get_pull_request_diff
+    servicenow:
+      - servicenow_list_incidents
+      - servicenow_get_incident
+    jira:
+      - jira_list_issues
+      - jira_get_issue
   code_reviewer:
     github:
-      - get_pr
-      - get_pr_diff
-      - create_pr_review
-      - create_pr_review_comment
-    ado:
-      - get_pr
-      - get_pr_diff
-      - create_pr_review
-    filesystem:
-      - read_file
-      - list_directory
-      - search_files
-  pr_create:
+      - github_get_pull_request
+      - github_get_pull_request_diff
+    azure_devops:
+      - ado_get_pull_request
+      - ado_get_pull_request_diff
+  pr_crafter:
     github:
-      - create_branch
-      - create_or_update_file
-      - create_pull_request
-    ado:
-      - create_branch
-      - create_or_update_file
-      - create_pull_request
-    filesystem:
-      - read_file
-      - write_file
-      - edit_file
-      - list_directory
-  ticket_lookup:
+      - github_list_pull_requests
+      - github_get_pull_request
+      - github_create_pull_request
+    azure_devops:
+      - ado_get_pull_request
+      - ado_create_pull_request
+  ticket_analyst:
     servicenow:
-      - get_incident
-      - query_incidents
+      - servicenow_list_incidents
+      - servicenow_get_incident
     jira:
-      - get_issue
-      - search_issues
-    ado:
-      - get_item
-      - query_items
+      - jira_list_issues
+      - jira_get_issue
+    azure_devops:
+      - ado_list_work_items
+      - ado_get_work_item
+  security_auditor:
     github:
-      - search_issues
-  security_audit:
-    github:
-      - get_file_contents
-      - list_commits
-      - get_vulnerability_alerts
-    filesystem:
-      - read_file
-      - list_directory
-      - search_files
+      - github_get_pull_request
+      - github_get_file_contents
 
 path_scopes:
   code_explorer:
@@ -80,7 +64,7 @@ path_scopes:
       - node_modules/
       - secrets/
       - .env*
-  pr_create:
+  pr_crafter:
     mode: allowlist
     paths:
       - /repo
@@ -89,7 +73,7 @@ path_scopes:
       - node_modules/
       - secrets/
       - .env*
-  security_audit:
+  security_auditor:
     mode: allowlist
     paths:
       - /repo

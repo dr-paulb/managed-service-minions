@@ -1,27 +1,15 @@
 governance:
   destructive_actions:
     - server_alias: github
-      tool_name: merge_pull_request
-    - server_alias: github
-      tool_name: delete_branch
-    - server_alias: github
-      tool_name: close_pull_request
-    - server_alias: ado
-      tool_name: merge_pr
-    - server_alias: ado
-      tool_name: close_work_item
-    - server_alias: ado
-      tool_name: delete_branch
+      tool_name: github_merge_pull_request
+    - server_alias: azure_devops
+      tool_name: ado_merge_pull_request
     - server_alias: servicenow
-      tool_name: close_incident
-    - server_alias: servicenow
-      tool_name: update_incident
+      tool_name: servicenow_update_incident
     - server_alias: jira
-      tool_name: transition_issue
+      tool_name: jira_update_issue
       params:
         status: Closed
-    - server_alias: filesystem
-      tool_name: delete_file
 
   approval_timeout_minutes: 15
 
@@ -32,7 +20,7 @@ governance:
     github:
       requests_per_minute: 30
       burst: 10
-    ado:
+    azure_devops:
       requests_per_minute: 60
       burst: 20
     servicenow:
