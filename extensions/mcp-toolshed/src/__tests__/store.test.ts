@@ -241,5 +241,300 @@ describe('store', () => {
       const store = createSqliteStore(':memory:', DatabaseCtor);
       expect(store.getCachedToolCall('key')).toBeUndefined();
     });
+
+    it('lists sessions', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 's1',
+            team_id: 'team-a',
+            platform: 'slack',
+            user_id: 'u1',
+            correlation_root: 'corr_1',
+            created_at: 1,
+            updated_at: 1,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      expect(store.listSessions()).toHaveLength(1);
+    });
+
+    it('lists minion runs by session', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'r1',
+            session_id: 's1',
+            minion_type: 'code-explorer',
+            correlation_id: 'corr_1',
+            status: 'completed',
+            result_json: null,
+            tokens_used: null,
+            created_at: 1,
+            completed_at: 2,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      expect(store.listMinionRunsBySession('s1')).toHaveLength(1);
+    });
+
+    it('lists minion runs by correlation root', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'r1',
+            session_id: 's1',
+            minion_type: 'code-explorer',
+            correlation_id: 'corr_1',
+            status: 'completed',
+            result_json: null,
+            tokens_used: null,
+            created_at: 1,
+            completed_at: 2,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      expect(store.listMinionRunsByCorrelationRoot('corr_1')).toHaveLength(1);
+    });
+
+    it('lists pending approvals', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'a1',
+            session_id: 's1',
+            correlation_id: 'corr_1',
+            server_alias: 'github',
+            tool_name: 'merge_pull_request',
+            params_json: '{}',
+            requested_at: 1,
+            timeout_at: 2,
+            decision: null,
+            decided_at: null,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      expect(store.listPendingApprovals()).toHaveLength(1);
+    });
+
+    it('maps optional sqlite row fields', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'r1',
+            session_id: 's1',
+            minion_type: 'code-explorer',
+            correlation_id: 'corr_1',
+            status: 'completed',
+            result_json: 'null',
+            tokens_used: 42,
+            created_at: 1,
+            completed_at: 2,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const runs = store.listMinionRunsBySession('s1');
+      expect(runs[0]).toMatchObject({
+        resultJson: 'null',
+        tokensUsed: 42,
+        completedAt: 2,
+      });
+    });
+
+    it('maps null optional fields to undefined', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'r1',
+            session_id: 's1',
+            minion_type: 'code-explorer',
+            correlation_id: 'corr_1',
+            status: 'completed',
+            result_json: null,
+            tokens_used: null,
+            created_at: 1,
+            completed_at: null,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const runs = store.listMinionRunsBySession('s1');
+      expect(runs[0]).toMatchObject({
+        resultJson: undefined,
+        tokensUsed: undefined,
+        completedAt: undefined,
+      });
+    });
+
+    it('maps decided approval fields', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'a1',
+            session_id: 's1',
+            correlation_id: 'corr_1',
+            server_alias: 'github',
+            tool_name: 'merge_pull_request',
+            params_json: '{}',
+            requested_at: 1,
+            timeout_at: 2,
+            decision: 'approved',
+            decided_at: 3,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const approvals = store.listPendingApprovals();
+      expect(approvals[0]).toMatchObject({
+        decision: 'approved',
+        decidedAt: 3,
+      });
+    });
+
+    it('maps null decision approval fields', () => {
+      const prepared = createStatement({
+        all: jest.fn().mockReturnValue([
+          {
+            id: 'a1',
+            session_id: 's1',
+            correlation_id: 'corr_1',
+            server_alias: 'github',
+            tool_name: 'merge_pull_request',
+            params_json: '{}',
+            requested_at: 1,
+            timeout_at: 2,
+            decision: null,
+            decided_at: null,
+          },
+        ]) as unknown as Statement['all'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const approvals = store.listPendingApprovals();
+      expect(approvals[0]).toMatchObject({
+        decision: undefined,
+        decidedAt: undefined,
+      });
+    });
+  });
+
+  describe('memory store list queries', () => {
+    it('lists sessions', () => {
+      const store = createMemoryStore();
+      store.createSession({
+        id: 's1',
+        teamId: 'team-a',
+        platform: 'slack',
+        userId: 'u1',
+        correlationRoot: 'corr_1',
+        createdAt: 1,
+        updatedAt: 1,
+      });
+      expect(store.listSessions()).toHaveLength(1);
+    });
+
+    it('lists minion runs by session', () => {
+      const store = createMemoryStore();
+      store.createMinionRun({
+        id: 'r1',
+        sessionId: 's1',
+        minionType: 'code-explorer',
+        correlationId: 'corr_1',
+        status: 'completed',
+        createdAt: 1,
+      });
+      expect(store.listMinionRunsBySession('s1')).toHaveLength(1);
+      expect(store.listMinionRunsBySession('other')).toHaveLength(0);
+    });
+
+    it('lists minion runs by correlation root', () => {
+      const store = createMemoryStore();
+      store.createMinionRun({
+        id: 'r1',
+        sessionId: 's1',
+        minionType: 'code-explorer',
+        correlationId: 'corr_1',
+        status: 'completed',
+        createdAt: 1,
+      });
+      expect(store.listMinionRunsByCorrelationRoot('corr_1')).toHaveLength(1);
+      expect(store.listMinionRunsByCorrelationRoot('corr_2')).toHaveLength(0);
+    });
+
+    it('lists only pending approvals', () => {
+      const store = createMemoryStore();
+      store.createApproval({
+        id: 'a1',
+        sessionId: 's1',
+        correlationId: 'corr_1',
+        serverAlias: 'github',
+        toolName: 'merge_pull_request',
+        paramsJson: '{}',
+        requestedAt: 1,
+        timeoutAt: 2,
+      });
+      store.resolveApproval('a1', 'approved');
+      expect(store.listPendingApprovals()).toHaveLength(0);
+    });
   });
 });

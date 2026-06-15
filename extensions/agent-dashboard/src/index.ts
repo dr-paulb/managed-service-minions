@@ -1,13 +1,15 @@
-import { AcpClient } from './acp-client.js';
 import { startDashboardServer } from './dashboard.js';
+import { createSqliteStore } from 'mcp-toolshed';
 
-const acpUrl = process.env.GOOSE_ACP_URL ?? 'ws://localhost:3284/acp';
-const acpToken = process.env.GOOSE_ACP_TOKEN ?? '';
-const port = Number(process.env.DASHBOARD_PORT ?? 3001);
+async function main(): Promise<void> {
+  const port = Number(process.env.DASHBOARD_PORT ?? 3001);
+  const storePath = process.env.SQLITE_PATH ?? '/data/dashboard.db';
+  const store = createSqliteStore(storePath);
 
-const client = new AcpClient(acpUrl, acpToken);
+  await startDashboardServer(store, port);
+}
 
-startDashboardServer(client, port).catch((err) => {
+main().catch((err) => {
   console.error('Dashboard failed to start', err);
   process.exit(1);
 });
