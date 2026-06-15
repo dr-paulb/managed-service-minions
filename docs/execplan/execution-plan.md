@@ -24,10 +24,13 @@ This plan turns the design documents in this repository — `../delivery-specifi
   - Delivered: all five minion agent prompts (`code-explorer`, `code-reviewer`, `pr-crafter`, `ticket-analyst`, `security-auditor`) plus `orchestrator.md` with role, model tier, allowlist, output schema, and system prompt.
   - Delivered: framework skills (`intent-classification`, `task-decomposition`, `delegate-management`, `result-synthesis`, `approval-gating`) with invocation rules, inputs, and outputs.
   - Delivered: `rules/allowlists.yaml`, `rules/governance.yaml`, and `rules/models.yaml` with per-minion tool lists, destructive-action gating, rate limits, path scopes, fallback behavior, and tier budgets.
-- [ ] Milestone 2 — Phase 2 Minion Framework: orchestrator skill, intent classification, DAG decomposition, structured output schemas, and prompt-quality harness.
-  - Status: In progress. Agent prompts and schemas are wired; remaining work is the prompt-quality harness and full integration tests for DAG execution.
+  - SQLite session store implementation exists in `extensions/mcp-toolshed/src/store.ts` (memory + SQLite backends) and is used by the toolshed for audit logs, minion runs, approvals, and caching.
+- [x] Milestone 2 — Phase 2 Minion Framework: orchestrator skill, intent classification, DAG decomposition, structured output schemas, and prompt-quality harness.
+  - Agent prompts, skills, rules, recipes, and structured output schemas implemented and merged.
+  - Prompt-quality harness added under `test/src/prompt-quality/` with 100% test coverage; supports required sections, forbidden phrases, length bounds, and baseline/candidate comparison.
 - [ ] Milestone 3 — Phase 3 Ticket and Review Pipelines: GitHub, Azure DevOps, ServiceNow, and Jira integrations; ticket→fix→PR flow; human approval gates.
   - [x] (2026-06-15) GitHub MCP server extension implemented in `extensions/mcp-github/` with PR list, PR details, diff, create, and merge tools; 100% TypeScript test coverage.
+  - [x] (2026-06-15) Azure DevOps MCP server extension implemented in `extensions/mcp-azure-devops/` with PR and work-item tools; 100% TypeScript test coverage.
 - [ ] Milestone 4 — Phase 4 Platform Hardening: Terraform infrastructure modules, Container Apps, Service Bus, AI Foundry, observability, dashboard, CI/CD, and `terraform test`.
 - [ ] Milestone 5 — Acceptance, disaster recovery, performance/chaos validation, and production handoff.
 
@@ -289,6 +292,8 @@ Implementation notes:
 - The toolshed only wraps external MCP servers; it does not intercept built-in Goose tools. Built-in tool calls are still captured by Goose's native logging (Layer A in ADR-016).
 
 ### Milestone 2 — Phase 2 Minion Framework: orchestrator skill, DAG, schemas, and prompts
+
+**Status: Complete as of 2026-06-15.**
 
 Goal: Implement the orchestrator agent/skill and the five minion types defined in `../high-level-design.md` §5.
 
