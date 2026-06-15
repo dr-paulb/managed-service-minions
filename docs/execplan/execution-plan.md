@@ -342,6 +342,7 @@ Goal: Wire the end-to-end operational flows: ticket analysis, code review, PR cr
 What will exist at the end:
 - `extensions/mcp-github/` — standalone MCP server for GitHub PR review and basic PR automation (list, get, diff, create, and merge pull requests). Implemented with 100% TypeScript test coverage.
 - MCP server adapters for GitHub and Azure DevOps in `extensions/mcp-toolshed/servers/` (or imported packages if stable community servers exist).
+  - `extensions/mcp-azure-devops/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
 - MCP server adapters for ServiceNow and Jira.
 - `commands/daily-pr-review.yaml` and `commands/ticket-poll.yaml` slash-command recipes.
 - `skills/approval-gating/SKILL.md` — skill that teaches the orchestrator to pause destructive actions and request human approval via Slack/Teams.

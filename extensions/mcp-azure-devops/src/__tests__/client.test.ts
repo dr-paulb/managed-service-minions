@@ -1,0 +1,235 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { jest } from '@jest/globals';
+import { createAzureDevOpsClient, type AzureDevOpsClient } from '../client.js';
+import { AzureDevOpsApiError } from '../errors.js';
+
+describe('createAzureDevOpsClient', () => {
+  const org = 'testorg';
+  const project = 'testproject';
+  const token = 'testtoken';
+  let fetchFn: jest.Mock<any>;
+  let client: AzureDevOpsClient;
+
+  beforeEach(() => {
+    fetchFn = jest.fn() as jest.Mock<any>;
+    client = createAzureDevOpsClient({ org, project, token, fetchFn });
+  });
+
+  it('uses the global fetch when fetchFn is omitted', () => {
+    const defaultClient = createAzureDevOpsClient({ org, project, token });
+    expect(defaultClient).toBeDefined();
+  });
+
+  function mockResponse(response: { ok: boolean; status: number; text: string }) {
+    fetchFn.mockResolvedValue({
+      ok: response.ok,
+      status: response.status,
+      text: async () => response.text,
+    });
+  }
+
+  it('uses the expected base URL and auth header', async () => {
+    mockResponse({ ok: true, status: 200, text: '{}' });
+    await client.getWorkItem(123);
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      'https://dev.azure.com/testorg/testproject/_apis/wit/workitems/123?api-version=7.1'
+    );
+    expect(init.method).toBe('GET');
+    expect(init.headers).toMatchObject({
+      Authorization: `Basic ${Buffer.from(':testtoken').toString('base64')}`,
+      Accept: 'application/json',
+    });
+  });
+
+  describe('listPullRequests', () => {
+    it('lists with default active status', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"value":[]}' });
+      await client.listPullRequests('repo-1');
+      const [url] = fetchFn.mock.calls[0] as [string];
+      expect(url).toContain('searchCriteria.status=active');
+      expect(url).toContain('api-version=7.1');
+      expect(url).not.toContain('$top');
+    });
+
+    it('lists with explicit status and top', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"value":[]}' });
+      await client.listPullRequests('repo-1', 'completed', 10);
+      const [url] = fetchFn.mock.calls[0] as [string];
+      expect(url).toContain('searchCriteria.status=completed');
+      expect(url).toContain('%24top=10');
+    });
+  });
+
+  describe('getPullRequest', () => {
+    it('fetches a pull request', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"pullRequestId":42}' });
+      const result = await client.getPullRequest('repo-1', 42);
+      expect(result).toEqual({ pullRequestId: 42 });
+      const [url] = fetchFn.mock.calls[0] as [string];
+      expect(url).toContain('/pullrequests/42?');
+    });
+  });
+
+  describe('getPullRequestDiff', () => {
+    it('fetches a diff', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"changes":[]}' });
+      const result = await client.getPullRequestDiff('repo-1', 42);
+      expect(result).toEqual({ changes: [] });
+      const [url] = fetchFn.mock.calls[0] as [string];
+      expect(url).toContain('/pullrequests/42/diff?');
+    });
+  });
+
+  describe('createPullRequest', () => {
+    it('creates without description', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"pullRequestId":99}' });
+      const result = await client.createPullRequest(
+        'repo-1',
+        'Fix bug',
+        'refs/heads/feature',
+        'refs/heads/main'
+      );
+      expect(result).toEqual({ pullRequestId: 99 });
+      const [, init] = fetchFn.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toEqual({
+        title: 'Fix bug',
+        sourceRefName: 'refs/heads/feature',
+        targetRefName: 'refs/heads/main',
+      });
+      expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' });
+    });
+
+    it('creates with description', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"pullRequestId":99}' });
+      await client.createPullRequest(
+        'repo-1',
+        'Fix bug',
+        'refs/heads/feature',
+        'refs/heads/main',
+        'Detailed description'
+      );
+      const [, init] = fetchFn.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toMatchObject({
+        description: 'Detailed description',
+      });
+    });
+  });
+
+  describe('mergePullRequest', () => {
+    it('completes without comment', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"status":"completed"}' });
+      const result = await client.mergePullRequest('repo-1', 42);
+      expect(result).toEqual({ status: 'completed' });
+      const [, init] = fetchFn.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toEqual({ status: 'completed' });
+      expect(init.method).toBe('PATCH');
+    });
+
+    it('completes with comment', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"status":"completed"}' });
+      await client.mergePullRequest('repo-1', 42, 'Merging now');
+      const [, init] = fetchFn.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toEqual({
+        status: 'completed',
+        completionOptions: { mergeCommitMessage: 'Merging now' },
+      });
+    });
+  });
+
+  describe('listWorkItems', () => {
+    it('queries by ids', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"value":[]}' });
+      await client.listWorkItems(undefined, [1, 2, 3]);
+      const [url] = fetchFn.mock.calls[0] as [string];
+      expect(url).toContain('ids=1%2C2%2C3');
+      expect(url).toContain('api-version=7.1');
+    });
+
+    it('queries by wiql', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"workItems":[]}' });
+      await client.listWorkItems('SELECT [System.Id] FROM workitems');
+      const [url, init] = fetchFn.mock.calls[0] as [string, RequestInit];
+      expect(url).toContain('/wiql?');
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body as string)).toEqual({
+        query: 'SELECT [System.Id] FROM workitems',
+      });
+    });
+
+    it('throws when neither ids nor wiql are provided', async () => {
+      await expect(client.listWorkItems()).rejects.toThrow(AzureDevOpsApiError);
+    });
+  });
+
+  describe('getWorkItem', () => {
+    it('fetches a work item', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"id":123}' });
+      const result = await client.getWorkItem(123);
+      expect(result).toEqual({ id: 123 });
+    });
+  });
+
+  describe('updateWorkItem', () => {
+    it('patches fields', async () => {
+      mockResponse({ ok: true, status: 200, text: '{"id":123}' });
+      const result = await client.updateWorkItem(123, { 'System.Title': 'New title' });
+      expect(result).toEqual({ id: 123 });
+      const [, init] = fetchFn.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toEqual([
+        { op: 'add', path: '/fields/System.Title', value: 'New title' },
+      ]);
+      expect(init.headers).toMatchObject({ 'Content-Type': 'application/json-patch+json' });
+    });
+  });
+
+  describe('AzureDevOpsApiError', () => {
+    it('uses a default message when none is provided', () => {
+      const error = new AzureDevOpsApiError(500, { message: 'bad' });
+      expect(error.message).toBe('Azure DevOps API error (500)');
+      expect(error.status).toBe(500);
+      expect(error.body).toEqual({ message: 'bad' });
+    });
+  });
+
+  describe('error handling', () => {
+    it('throws AzureDevOpsApiError for non-2xx responses', async () => {
+      mockResponse({ ok: false, status: 404, text: '{"message":"Not found"}' });
+      await expect(client.getWorkItem(123)).rejects.toMatchObject({
+        status: 404,
+        body: { message: 'Not found' },
+      });
+    });
+
+    it('throws AzureDevOpsApiError for non-JSON error bodies', async () => {
+      mockResponse({ ok: false, status: 500, text: 'Internal Server Error' });
+      const error = await client.getWorkItem(123).catch((e) => e);
+      expect(error).toBeInstanceOf(AzureDevOpsApiError);
+      expect(error.status).toBe(500);
+      expect(error.body).toBe('Internal Server Error');
+    });
+
+    it('throws AzureDevOpsApiError for network failures', async () => {
+      fetchFn.mockRejectedValue(new Error('ECONNREFUSED'));
+      const error = await client.getWorkItem(123).catch((e) => e);
+      expect(error).toBeInstanceOf(AzureDevOpsApiError);
+      expect(error.status).toBe(0);
+      expect(error.message).toContain('ECONNREFUSED');
+    });
+
+    it('throws AzureDevOpsApiError for non-Error network failures', async () => {
+      fetchFn.mockRejectedValue('failure');
+      const error = await client.getWorkItem(123).catch((e) => e);
+      expect(error).toBeInstanceOf(AzureDevOpsApiError);
+      expect(error.message).toContain('failure');
+    });
+
+    it('returns undefined for empty response bodies', async () => {
+      mockResponse({ ok: true, status: 204, text: '' });
+      const result = await client.getWorkItem(123);
+      expect(result).toBeUndefined();
+    });
+  });
+});

@@ -60,3 +60,28 @@ Tools exposed by `mcp-github` include:
 - `github_merge_pull_request`
 
 Each tool returns JSON with `success` and either `data` or `error`.
+
+## Registering the Azure DevOps MCP server
+
+The `extensions/mcp-azure-devops` MCP server can be registered with the toolshed
+via the `TOOLSHED_ADAPTERS` environment variable:
+
+```json
+[
+  {
+    "alias": "azure_devops",
+    "command": "node",
+    "args": ["/path/to/repo/extensions/mcp-azure-devops/dist/index.js"],
+    "env": {
+      "AZURE_DEVOPS_ORG": "<your-organization>",
+      "AZURE_DEVOPS_PROJECT": "<your-project>",
+      "AZURE_DEVOPS_TOKEN": "<personal-access-token>"
+    }
+  }
+]
+```
+
+After building the extension (`pnpm --filter @goose-agent-framework/mcp-azure-devops build`),
+start the toolshed with `TOOLSHED_ADAPTERS` set to the JSON above. Minions can
+then call Azure DevOps tools such as `ado_get_pull_request`, `ado_list_work_items`,
+and `ado_update_work_item` through the toolshed.
