@@ -14,8 +14,8 @@ export function renderPrompt(
   template: string,
   variables: Record<string, string>
 ): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_match, key) => {
-    return key in variables ? variables[key] : `{{${key}}}`;
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
+    return Object.prototype.hasOwnProperty.call(variables, key) ? variables[key] : `{{${key}}}`;
   });
 }
 
