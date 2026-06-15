@@ -3,7 +3,7 @@
 > **Status:** Accepted  
 > **Date:** 2026-06-14  
 > **Author:** Kimi Code CLI  
-> **Relates to:** ADR-023, `testing-strategy.md`, `docs/execplan/execution-plan.md`, `.github/workflows/ci.yml`
+> **Relates to:** ADR-023, `../docs/testing-strategy.md`, `docs/execplan/execution-plan.md`, `.github/workflows/ci.yml`
 
 ## Context
 
@@ -57,6 +57,6 @@ A red build means the codebase is in danger. The loop continues — notification
 
 ## References
 
-- `testing-strategy.md` §Red Build Policy
+- `../docs/testing-strategy.md` §Red Build Policy
 - `AGENTS.md` §Build, test, and validation guidance
 - `docs/execplan/execution-plan.md` §Validation and Acceptance

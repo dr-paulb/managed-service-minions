@@ -5,10 +5,10 @@
 This folder contains the design, delivery, governance, and implementation scaffolding for the Goose Agent Framework. The primary focus remains specification- and architecture-oriented, but the repository now includes runnable TypeScript packages and MCP extensions.
 
 Primary source documents include:
-- `high-level-design.md` — system architecture and core capabilities
-- `delivery-specification.md` — scope, workstreams, phases, and acceptance criteria
-- `testing-strategy.md` — test pyramid, integration plans, and quality controls
-- `agent-led-development.md` — agent/role mapping and operating model
+- `./docs/high-level-design.md` — system architecture and core capabilities
+- `./docs/delivery-specification.md` — scope, workstreams, phases, and acceptance criteria
+- `./docs/testing-strategy.md` — test pyramid, integration plans, and quality controls
+- `./docs/agent-led-development.md` — agent/role mapping and operating model
 - `docs/low-level-design.md` — low-level design covering Goose primitives and framework additions
 - `docs/execplan/execution-plan.md` — living execution plan for implementation
 - `adrs/` — architecture decisions and governance rationale
@@ -47,12 +47,12 @@ Common commands (after `pnpm install`):
 - `pnpm test:integration` — run integration tests (placeholder).
 
 Quality gates:
-- **100% code coverage** is required for all runnable TypeScript code in `packages/` and `extensions/`. The CI pipeline fails if any package drops below 100% line, branch, function, and statement coverage. See `testing-strategy.md` for the full coverage policy.
+- **100% code coverage** is required for all runnable TypeScript code in `packages/` and `extensions/`. The CI pipeline fails if any package drops below 100% line, branch, function, and statement coverage. See `./docs/testing-strategy.md` for the full coverage policy.
 - **Red build policy ("Ralph Wiggum" loop):** a failing CI check blocks merge until the root cause is fixed, the full pipeline is green, and a maintainer/QA reviewer approves the fix. No bypasses.
 
 For day-to-day work here:
 - Treat the Markdown docs as the primary deliverables.
-- Keep design docs (`high-level-design.md`, `logical-architecture.md`, `physical-architecture.md`, `docs/low-level-design.md`, `docs/execplan/execution-plan.md`) aligned with any code changes.
+- Keep design docs (`./docs/high-level-design.md`, `./docs/logical-architecture.md`, `./docs/physical-architecture.md`, `docs/low-level-design.md`, `docs/execplan/execution-plan.md`) aligned with any code changes.
 - If you add a new runnable subproject, create a package-local `AGENTS.md` there and use that package’s native build/test commands.
 - If you are asked to validate a change, verify the relevant Markdown or spec references and keep the surrounding docs consistent.
 

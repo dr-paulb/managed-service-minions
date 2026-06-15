@@ -19,7 +19,7 @@ Minions need access to multiple LLM models for different task profiles:
 - **Code generation tier** — implementing fixes, writing tests, authoring PRs
 - **Security tier** — vulnerability scanning, CVE analysis, dependency auditing
 
-Model names (GPT-4o, Claude Sonnet, etc.) are **not hardcoded**. The framework maps task types to configurable model tiers. When a model is retired or upgraded, only the tier-to-deployment mapping changes — no code changes. See `how-goose-works-with-llms.md` for the tier configuration.
+Model names (GPT-4o, Claude Sonnet, etc.) are **not hardcoded**. The framework maps task types to configurable model tiers. When a model is retired or upgraded, only the tier-to-deployment mapping changes — no code changes. See `../docs/how-goose-works-with-llms.md` for the tier configuration.
 
 Options:
 

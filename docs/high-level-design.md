@@ -820,7 +820,7 @@ github.com/your-org/goose-agent-framework/
 │   └── governance.yaml
 ├── docs/
 │   ├── high-level-design.md
-│   └── adrs.md
+│   └── low-level-design.md
 ├── .github/
 │   └── workflows/
 │       ├── deploy-orchestrator.yml

@@ -3,13 +3,13 @@
 > **Status:** Accepted  
 > **Date:** 2026-06-14  
 > **Author:** Kimi Code CLI  
-> **Supersedes / Amends:** `testing-strategy.md`, `delivery-specification.md`, `AGENTS.md`
+> **Supersedes / Amends:** `../docs/testing-strategy.md`, `../docs/delivery-specification.md`, `AGENTS.md`
 
 ## Context
 
 The Goose Agent Framework is a multi-agent system that orchestrates engineering operations across chat platforms, source control, and ticket systems. Mistakes in the orchestrator, toolshed, or chat adapters can have outsized impact: a missed allowlist check could let a minion delete infrastructure, a circuit-breaker bug could silently block all ticket lookups, or a malformed error response could leave a destructive action unreviewed.
 
-We already have a layered testing strategy (`testing-strategy.md`) and a human-in-the-loop governance model. However, as the codebase grows from documentation into runnable TypeScript packages and MCP extensions, we need a clear, non-negotiable signal that every line of runnable code is exercised by automated tests before it reaches production.
+We already have a layered testing strategy (`../docs/testing-strategy.md`) and a human-in-the-loop governance model. However, as the codebase grows from documentation into runnable TypeScript packages and MCP extensions, we need a clear, non-negotiable signal that every line of runnable code is exercised by automated tests before it reaches production.
 
 ## Decision
 
@@ -59,5 +59,5 @@ We will enforce **100% line, branch, function, and statement coverage** for all 
 
 - ADR-005: Tool allowlisting per minion
 - ADR-007: Human-in-the-loop for destructive operations
-- `testing-strategy.md`
-- `delivery-specification.md` §9
+- `../docs/testing-strategy.md`
+- `../docs/delivery-specification.md` §9

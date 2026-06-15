@@ -38,7 +38,7 @@ A user can say:
 
 The orchestrator classifies the intent, delegates to a **Code Reviewer** minion, lets it read the PR and related code through the toolshed, and posts a structured review back to the channel — fully correlated and audited.
 
-The design authority lives in [`high-level-design.md`](./high-level-design.md), [`delivery-specification.md`](./delivery-specification.md), [`testing-strategy.md`](./testing-strategy.md), and the [`adrs/`](./adrs/) folder.
+The design authority lives in [`./docs/high-level-design.md`](./docs/high-level-design.md), [`./docs/delivery-specification.md`](./docs/delivery-specification.md), [`./docs/testing-strategy.md`](./docs/testing-strategy.md), and the [`adrs/`](./adrs/) folder.
 
 ---
 
@@ -102,7 +102,7 @@ The design authority lives in [`high-level-design.md`](./high-level-design.md), 
 - The **MCP extensions** are Node.js MCP servers configured separately in Goose. They are built from this monorepo.
 - The orchestrator spawns minions with `delegate(async: true)` because `delegate` inherits the parent’s extensions, giving minions access to shell, file, analyze, and the toolshed.
 
-See [`logical-architecture.md`](./logical-architecture.md), [`physical-architecture.md`](./physical-architecture.md), and [`azure-architecture.md`](./azure-architecture.md) for deeper detail.
+See [`./docs/logical-architecture.md`](./docs/logical-architecture.md), [`./docs/physical-architecture.md`](./docs/physical-architecture.md), and [`./docs/azure-architecture.md`](./docs/azure-architecture.md) for deeper detail.
 
 ---
 
@@ -292,7 +292,7 @@ az deployment group create \
   --parameters environment=dev
 ```
 
-See [`azure-architecture.md`](./azure-architecture.md) and [`disaster-recovery.md`](./disaster-recovery.md) for details.
+See [`./docs/azure-architecture.md`](./docs/azure-architecture.md) and [`./docs/disaster-recovery.md`](./docs/disaster-recovery.md) for details.
 
 ---
 
@@ -305,7 +305,7 @@ See [`azure-architecture.md`](./azure-architecture.md) and [`disaster-recovery.m
 - **Audit logging** records every tool call with correlation ID, status, latency, and error.
 - **Least-privilege** access via managed identities; no secrets are committed.
 
-See [`adrs/adr-005-tool-allowlisting-per-minion.md`](./adrs/adr-005-tool-allowlisting-per-minion.md), [`adrs/adr-007-human-in-the-loop-destructive-ops.md`](./adrs/adr-007-human-in-the-loop-destructive-ops.md), and [`error-handling.md`](./error-handling.md).
+See [`adrs/adr-005-tool-allowlisting-per-minion.md`](./adrs/adr-005-tool-allowlisting-per-minion.md), [`adrs/adr-007-human-in-the-loop-destructive-ops.md`](./adrs/adr-007-human-in-the-loop-destructive-ops.md), and [`./docs/error-handling.md`](./docs/error-handling.md).
 
 ---
 

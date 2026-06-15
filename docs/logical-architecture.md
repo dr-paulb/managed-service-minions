@@ -2,7 +2,7 @@
 
 > **Date:** 2026-06-05  
 > **Status:** Draft  
-> **Complements:** [high-level-design.md](./high-level-design.md), [adrs.md](./adrs.md)
+> **Complements:** [high-level-design.md](./high-level-design.md), [ADRs](../adrs/readme.md)
 
 ---
 
@@ -129,7 +129,7 @@ This is the **C4 Container diagram** — one zoom level in from the System Conte
 - **Table Storage** is the immutable tool-call log, partitioned by correlation ID. Append-only.
 - **Blob Storage** holds large artifacts (full minion outputs, diffs) and periodic SQLite backups from the orchestrator.
 - **Service Bus** is the async minion task queue. Sessions guarantee ordered delivery per correlation ID.
-- **AI Foundry** is where LLM inference happens. Models are provisioned by tier — fast (classification), reasoning (orchestration), code_review (analysis), code_generation (PRs), security (auditing). See `how-goose-works-with-llms.md` for the configurable tier system.
+- **AI Foundry** is where LLM inference happens. Models are provisioned by tier — fast (classification), reasoning (orchestration), code_review (analysis), code_generation (PRs), security (auditing). See `./how-goose-works-with-llms.md` for the configurable tier system.
 - **Log Analytics** is the KQL engine behind Grafana dashboards and alert rules.
 
 **External MCP Servers** run outside Azure — third-party or self-hosted processes that the toolshed connects to via SSE or stdio.

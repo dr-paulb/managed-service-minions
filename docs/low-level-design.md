@@ -1170,7 +1170,7 @@ Goose ACP Server (goose serve)
 
 ## 14. Testing Strategy Hooks
 
-The low-level design supports the testing pyramid from `testing-strategy.md`:
+The low-level design supports the testing pyramid from `./testing-strategy.md`:
 
 | Level | How |
 |---|---|

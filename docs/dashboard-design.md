@@ -2,7 +2,7 @@
 
 > **Date:** 2026-06-06  
 > **Status:** Draft  
-> **Complements:** ADR-018 (Observability), `logical-architecture.md` §15
+> **Complements:** ADR-018 (Observability), `./logical-architecture.md` §15
 
 ---
 

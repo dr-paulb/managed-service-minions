@@ -6,7 +6,7 @@
 
 After this work, a user can mention `@goose` in Slack or Microsoft Teams and ask for real engineering tasks — for example, "Review PR #342", "What's the status of INC00421?", or "Fix work item #567 and create a PR". Goose, guided by the framework's plugin, classifies the request, delegates to specialized sub-agents ("minions"), calls GitHub, Azure DevOps, ServiceNow, Jira, filesystem, and shell tools through a governed MCP toolshed, and returns a structured, traceable answer back to the chat channel. Operators can reconstruct every session from a correlation tree, audit every tool call, approve destructive actions, and observe health and cost through Azure dashboards.
 
-This plan turns the design documents in this repository — `delivery-specification.md`, `high-level-design.md`, `testing-strategy.md`, `agent-led-development.md`, the ADRs, and the related architecture notes — into a working, deployed system.
+This plan turns the design documents in this repository — `../delivery-specification.md`, `../high-level-design.md`, `../testing-strategy.md`, `../agent-led-development.md`, the ADRs, and the related architecture notes — into a working, deployed system.
 
 ## Progress
 
@@ -99,11 +99,11 @@ This plan turns the design documents in this repository — `delivery-specificat
   - **Date/Author:** 2026-06-14 / Kimi Code CLI
 
 - **Decision:** Enforce per-minion token budgets and model-tier routing via the orchestrator skill's instructions and config.
-  - **Rationale:** `how-goose-works-with-llms.md` describes tier-based routing and token budgets as the primary cost-control mechanism. The orchestrator agent assigns the tier per minion type and monitors cumulative token usage from the sub-agent session transcript (`view_session`) and persisted `SessionStore`.
+  - **Rationale:** `../how-goose-works-with-llms.md` describes tier-based routing and token budgets as the primary cost-control mechanism. The orchestrator agent assigns the tier per minion type and monitors cumulative token usage from the sub-agent session transcript (`view_session`) and persisted `SessionStore`.
   - **Date/Author:** 2026-06-14 / Kimi Code CLI
 
 - **Decision:** Implement circuit breakers in the MCP toolshed per MCP server alias.
-  - **Rationale:** `error-handling.md` specifies circuit breaker behavior: open after N consecutive failures, half-open after a timeout, close after M consecutive successes. This prevents minions from waiting on unhealthy MCP servers and gives fast-fail feedback with `retry_after`.
+  - **Rationale:** `../error-handling.md` specifies circuit breaker behavior: open after N consecutive failures, half-open after a timeout, close after M consecutive successes. This prevents minions from waiting on unhealthy MCP servers and gives fast-fail feedback with `retry_after`.
   - **Date/Author:** 2026-06-14 / Kimi Code CLI
 
 - **Decision:** Use Goose built-in extensions for `delegate`, `load`, session memory, shell/files, tree-sitter analysis, and app creation; build the MCP toolshed only for external MCP servers.
@@ -119,7 +119,7 @@ This plan turns the design documents in this repository — `delivery-specificat
   - **Date/Author:** 2026-06-14 / Kimi Code CLI
 
 - **Decision:** Use a consistent four-field error template for every user-facing failure.
-  - **Rationale:** `error-handling.md` defines the pattern: severity icon, one-line summary, cause, impact, action, and correlation ID. Following this from the start makes bot responses predictable and debuggable.
+  - **Rationale:** `../error-handling.md` defines the pattern: severity icon, one-line summary, cause, impact, action, and correlation ID. Following this from the start makes bot responses predictable and debuggable.
   - **Date/Author:** 2026-06-14 / Kimi Code CLI
 
 ## Outcomes & Retrospective
@@ -130,17 +130,17 @@ Not executed yet. Summarize what shipped, what remains, and lessons learned at t
 
 This repository is currently documentation-first. The root is `/Volumes/ExtDisk1/Minions`. The design authority lives in these files:
 
-- `delivery-specification.md` — scope, phases, workstreams, acceptance criteria.
-- `high-level-design.md` — logical architecture, minion definitions, data flows, storage, observability.
-- `testing-strategy.md` — test pyramid, prompt-quality harness, CI gates.
-- `agent-led-development.md` — agent/human operating model.
-- `goose-changes-required.md` — what needs a Goose core change vs. what is extension-only.
-- `goose-capabilities-and-usage.md` — Goose primitives the framework uses and ignores.
-- `how-goose-works-with-llms.md` — provider abstraction, model tiers, token budgets.
-- `logical-architecture.md`, `physical-architecture.md`, `azure-architecture.md`, `dashboard-design.md` — architecture details.
-- `error-handling.md`, `disaster-recovery.md` — failure and recovery patterns.
-- `gap-analysis.md` — what is designed and what still needs production validation.
-- `skills-and-roles.md` — team allocation by phase.
+- `../delivery-specification.md` — scope, phases, workstreams, acceptance criteria.
+- `../high-level-design.md` — logical architecture, minion definitions, data flows, storage, observability.
+- `../testing-strategy.md` — test pyramid, prompt-quality harness, CI gates.
+- `../agent-led-development.md` — agent/human operating model.
+- `../goose-changes-required.md` — what needs a Goose core change vs. what is extension-only.
+- `../goose-capabilities-and-usage.md` — Goose primitives the framework uses and ignores.
+- `../how-goose-works-with-llms.md` — provider abstraction, model tiers, token budgets.
+- `../logical-architecture.md`, `../physical-architecture.md`, `../azure-architecture.md`, `../dashboard-design.md` — architecture details.
+- `../error-handling.md`, `../disaster-recovery.md` — failure and recovery patterns.
+- `../gap-analysis.md` — what is designed and what still needs production validation.
+- `../skills-and-roles.md` — team allocation by phase.
 - `adrs/adr-*.md` — architecture decisions.
 
 This plan creates a Goose **plugin** plus separately configured MCP **extensions**:
@@ -198,7 +198,7 @@ Key terms:
 
 ## Plan of Work
 
-The work is delivered in six milestones. Each milestone produces a running, testable increment. Milestones 1–4 map directly to the delivery phases in `delivery-specification.md`.
+The work is delivered in six milestones. Each milestone produces a running, testable increment. Milestones 1–4 map directly to the delivery phases in `../delivery-specification.md`.
 
 ### Milestone 0 — Bootstrap plugin repository and MCP extension monorepo
 
@@ -266,7 +266,7 @@ Implementation notes:
   ```
 - The toolshed consults `rules/allowlists.yaml` keyed by `minionType`.
 - Path scoping for filesystem tools is checked inside `execute_tool` using the minion's `path_scope` config (ADR-019).
-- The toolshed maintains a `CircuitBreaker` per MCP server alias. State transitions follow `error-handling.md`:
+- The toolshed maintains a `CircuitBreaker` per MCP server alias. State transitions follow `../error-handling.md`:
   - `closed` → `open` after `failure_threshold` consecutive failures.
   - `open` → `half-open` after `timeout_secs`.
   - `half-open` → `closed` after `success_threshold` consecutive successes; any failure re-opens.
@@ -285,7 +285,7 @@ Implementation notes:
 
 ### Milestone 2 — Phase 2 Minion Framework: orchestrator skill, DAG, schemas, and prompts
 
-Goal: Implement the orchestrator agent/skill and the five minion types defined in `high-level-design.md` §5.
+Goal: Implement the orchestrator agent/skill and the five minion types defined in `../high-level-design.md` §5.
 
 What will exist at the end:
 - `agents/orchestrator.md` — full orchestrator agent prompt covering intent classification, task decomposition, DAG execution, result collection, synthesis, and approval gating.
@@ -328,7 +328,7 @@ Implementation notes:
 - The orchestrator skill uses the built-in `Chat Recall` extension to load relevant prior session context before spawning downstream minions. Ensure `Chat Recall` is enabled in `~/.config/goose/config.yaml` (`--with-builtin chatrecall` does not override a disabled config entry in Goose 1.37.0).
 - Retry policy: up to 3 attempts with exponential backoff (1s, 2s, 4s). Terminal failures are sent to the Service Bus dead-letter queue and surfaced to the user with the correlation ID.
 - Schema validation uses AJV. Malformed output triggers a retry with the previous output appended as feedback.
-- The prompt-quality harness reads test cases from `test/prompt-quality/test-cases/<minion>/` and compares candidate vs. baseline. See `testing-strategy.md` §Prompt Quality Tests for thresholds.
+- The prompt-quality harness reads test cases from `test/prompt-quality/test-cases/<minion>/` and compares candidate vs. baseline. See `../testing-strategy.md` §Prompt Quality Tests for thresholds.
 
 ### Milestone 3 — Phase 3 Ticket and Review Pipelines
 
@@ -363,7 +363,7 @@ Implementation notes:
   4. The user clicks Approve or Deny. The bot adapter routes the callback to the orchestrator skill.
   5. On approval, the orchestrator re-issues the tool call. On denial, it aborts the action and reports the decision.
 - PR creation links back to the source ticket/work item using the platform's linking syntax (`Fixes AB#567`, `Closes #123`).
-- Error handling follows `error-handling.md`. Every failure path produces a user-facing message with: severity icon, one-line summary, cause, impact, action, and correlation ID. Example:
+- Error handling follows `../error-handling.md`. Every failure path produces a user-facing message with: severity icon, one-line summary, cause, impact, action, and correlation ID. Example:
   ```text
   ❌ Unable to review PR #342
   Cause: GitHub API rate limit exceeded (50 req/min).
@@ -397,11 +397,11 @@ Implementation notes:
 
 ### Milestone 5 — Acceptance, Disaster Recovery, and Production Handoff
 
-Goal: Validate the framework against the acceptance criteria in `delivery-specification.md` §7 and make it production-ready.
+Goal: Validate the framework against the acceptance criteria in `../delivery-specification.md` §7 and make it production-ready.
 
 What will exist at the end:
 - E2E test results from the staging environment.
-- Performance test results meeting the thresholds in `testing-strategy.md` §Performance Tests.
+- Performance test results meeting the thresholds in `../testing-strategy.md` §Performance Tests.
 - Chaos test results showing recovery from orchestrator restart, MCP outage, rate-limit exhaustion, and SQLite corruption.
 - Disaster-recovery runbook and tested backup/restore procedures.
 - Security review sign-off.
@@ -411,7 +411,7 @@ Implementation notes:
 - E2E scenarios are defined in `test/e2e/scenarios/` and run nightly against staging.
 - Performance tests use k6 or Artillery scripts in `test/performance/`.
 - Chaos tests are shell scripts in `test/chaos/` (kill orchestrator, block MCP server, exhaust GitHub rate limit, corrupt SQLite).
-- DR targets: RPO < 15 minutes via SQLite blob backups; RTO measured and documented in `disaster-recovery.md`.
+- DR targets: RPO < 15 minutes via SQLite blob backups; RTO measured and documented in `../disaster-recovery.md`.
 
 ## Concrete Steps
 
@@ -571,7 +571,7 @@ These commands assume you are at the repository root (`/Volumes/ExtDisk1/Minions
 
 ## Validation and Acceptance
 
-The work is complete when the following behaviors are observable. These map directly to `delivery-specification.md` §7.
+The work is complete when the following behaviors are observable. These map directly to `../delivery-specification.md` §7.
 
 1. **Intent classification and dispatch.** Send a Slack message `@goose review PR #342`. The orchestrator agent classifies intent `code_review`, delegates to the Code Reviewer agent, and posts a structured review to the channel. The correlation tree in the dashboard shows `corr_xxxx`, `corr_xxxx.1`, and `corr_xxxx.1.github-001`.
 
@@ -835,7 +835,7 @@ export interface SessionStore {
 
 ## Revision Notes
 
-- **2026-06-14:** Major revision after live Goose CLI exploration and reading `goose-capabilities-and-usage.md`, `how-goose-works-with-llms.md`, `logical-architecture.md`, `physical-architecture.md`, `error-handling.md`, `disaster-recovery.md`, `azure-architecture.md`, `dashboard-design.md`, and the Goose guides at https://goose-docs.ai/docs/category/guides.
+- **2026-06-14:** Major revision after live Goose CLI exploration and reading `../goose-capabilities-and-usage.md`, `../how-goose-works-with-llms.md`, `../logical-architecture.md`, `../physical-architecture.md`, `../error-handling.md`, `../disaster-recovery.md`, `../azure-architecture.md`, `../dashboard-design.md`, and the Goose guides at https://goose-docs.ai/docs/category/guides.
   - Replaced the standalone-service model with the Goose-native **plugin + MCP extensions** model.
   - Added plugin manifest, agents, skills, commands, rules, hooks directory structure.
   - Added circuit breakers, health monitoring, token budgets, model-tier routing, `chatrecall` dependency, tool-call caching, progressive disclosure, Goose CLI conventions, and the four-field user-facing error template.
