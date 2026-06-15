@@ -1,14 +1,24 @@
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-const mockConnect = jest.fn<() => Promise<void>>();
-const MockAcpClient = class {
-  constructor(public url: string, public token: string) {}
-  connect = mockConnect;
-  async sendPrompt(_sessionId: string | null, _text: string): Promise<void> {}
+const mockStart = jest.fn<() => Promise<void>>();
+const mockStop = jest.fn<() => Promise<unknown>>();
+const MockSlackBot = {
+  createSlackBot: jest.fn().mockReturnValue({ start: mockStart, stop: mockStop }),
+  createEchoRunner: jest.fn().mockReturnValue({ run: jest.fn() }),
 };
 
-jest.unstable_mockModule('../src/acp-client.js', () => ({
-  AcpClient: MockAcpClient,
+jest.unstable_mockModule('../src/slack-bot.js', () => MockSlackBot);
+
+const mockSqliteStore = { createSession: jest.fn() };
+const createSqliteStore = jest.fn().mockReturnValue(mockSqliteStore);
+
+jest.unstable_mockModule('mcp-toolshed', () => ({
+  createSqliteStore,
+}));
+
+const mockAppConstructor = jest.fn();
+jest.unstable_mockModule('@slack/bolt', () => ({
+  App: mockAppConstructor,
 }));
 
 describe('slack-bot index', () => {
@@ -21,7 +31,12 @@ describe('slack-bot index', () => {
     process.env = { ...originalEnv };
     exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
     errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    mockConnect.mockReset();
+    mockStart.mockReset().mockResolvedValue(undefined);
+    mockStop.mockReset().mockResolvedValue(undefined);
+    MockSlackBot.createSlackBot.mockClear();
+    MockSlackBot.createEchoRunner.mockClear();
+    createSqliteStore.mockClear();
+    mockAppConstructor.mockReset().mockReturnValue({});
   });
 
   afterEach(() => {
@@ -30,33 +45,29 @@ describe('slack-bot index', () => {
     errorSpy.mockRestore();
   });
 
-  it('connects using default environment values', async () => {
-    delete process.env.GOOSE_ACP_URL;
-    delete process.env.GOOSE_ACP_TOKEN;
-    mockConnect.mockResolvedValueOnce(undefined);
+  it('creates a Bolt app and starts the bot with env config', async () => {
+    process.env.SLACK_SIGNING_SECRET = 'signing';
+    process.env.SLACK_BOT_TOKEN = 'token';
+    process.env.PORT = '4000';
+    process.env.SQLITE_PATH = '/data/bot.db';
 
     await import('../src/index.js');
 
-    expect(mockConnect).toHaveBeenCalledTimes(1);
+    expect(mockAppConstructor).toHaveBeenCalledWith({
+      signingSecret: 'signing',
+      token: 'token',
+    });
+    expect(createSqliteStore).toHaveBeenCalledWith('/data/bot.db');
+    expect(MockSlackBot.createSlackBot).toHaveBeenCalled();
+    expect(mockStart).toHaveBeenCalled();
   });
 
-  it('connects using provided environment values', async () => {
-    process.env.GOOSE_ACP_URL = 'ws://example/acp';
-    process.env.GOOSE_ACP_TOKEN = 'secret';
-    mockConnect.mockResolvedValueOnce(undefined);
+  it('exits when the bot fails to start', async () => {
+    mockStart.mockRejectedValueOnce(new Error('start failed'));
 
     await import('../src/index.js');
 
-    expect(mockConnect).toHaveBeenCalledTimes(1);
-  });
-
-  it('logs the error and exits when connect fails', async () => {
-    const err = new Error('connection refused');
-    mockConnect.mockRejectedValueOnce(err);
-
-    await import('../src/index.js');
-
-    expect(errorSpy).toHaveBeenCalledWith('Slack bot failed to connect to Goose ACP', err);
+    expect(errorSpy).toHaveBeenCalledWith('Slack bot failed to start', expect.any(Error));
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });

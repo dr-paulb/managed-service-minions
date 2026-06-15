@@ -1,11 +1,23 @@
-import { AcpClient } from './acp-client.js';
+import { App } from '@slack/bolt';
+import { createSqliteStore } from 'mcp-toolshed';
+import { createSlackBot, createEchoRunner } from './slack-bot.js';
 
-const acpUrl = process.env.GOOSE_ACP_URL ?? 'ws://localhost:3284/acp';
-const acpToken = process.env.GOOSE_ACP_TOKEN ?? '';
+const config = {
+  signingSecret: process.env.SLACK_SIGNING_SECRET ?? '',
+  token: process.env.SLACK_BOT_TOKEN ?? '',
+  port: Number(process.env.PORT ?? 3000),
+};
 
-const client = new AcpClient(acpUrl, acpToken);
+const app = new App({
+  signingSecret: config.signingSecret,
+  token: config.token,
+});
 
-client.connect().catch((err) => {
-  console.error('Slack bot failed to connect to Goose ACP', err);
+const store = createSqliteStore(process.env.SQLITE_PATH ?? ':memory:');
+const runner = createEchoRunner();
+const bot = createSlackBot(app, store, runner, config);
+
+bot.start().catch((err) => {
+  console.error('Slack bot failed to start', err);
   process.exit(1);
 });
