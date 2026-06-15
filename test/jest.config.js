@@ -16,5 +16,10 @@ export default {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^framework-core$': '<rootDir>/../packages/framework-core/src/index.ts'
   },
-  testPathIgnorePatterns: ['/node_modules/', '/dist/']
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  collectCoverageFrom: ['src/prompt-quality/**/*.ts'],
+  coverageThreshold: {
+    global: { branches: 100, functions: 100, lines: 100, statements: 100 }
+  },
+  coverageReporters: ['text', 'text-summary', 'lcov']
 };
