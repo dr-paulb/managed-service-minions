@@ -23,6 +23,9 @@ export function createMemoryStore(): SessionStore {
     getSession(id: string): Session | undefined {
       return sessions.get(id);
     },
+    listSessions(): Session[] {
+      return Array.from(sessions.values());
+    },
     createMinionRun(run: MinionRun): void {
       runs.set(run.id, run);
     },
@@ -31,6 +34,12 @@ export function createMemoryStore(): SessionStore {
       if (existing) {
         runs.set(id, { ...existing, ...patch });
       }
+    },
+    listMinionRunsBySession(sessionId: string): MinionRun[] {
+      return Array.from(runs.values()).filter((run) => run.sessionId === sessionId);
+    },
+    listMinionRunsByCorrelationRoot(root: string): MinionRun[] {
+      return Array.from(runs.values()).filter((run) => run.correlationId === root);
     },
     createApproval(approval: PendingApproval): void {
       approvals.set(approval.id, approval);
@@ -41,6 +50,9 @@ export function createMemoryStore(): SessionStore {
         approval.decision = decision;
         approval.decidedAt = Date.now();
       }
+    },
+    listPendingApprovals(): PendingApproval[] {
+      return Array.from(approvals.values()).filter((approval) => approval.decision === undefined);
     },
     getCachedToolCall(key: string): unknown | undefined {
       return cache.get(key);
@@ -109,6 +121,9 @@ function initializeSchema(db: BetterSqlite3Database): void {
       completed_at INTEGER
     );
 
+    CREATE INDEX IF NOT EXISTS idx_minion_runs_session_id ON minion_runs (session_id);
+    CREATE INDEX IF NOT EXISTS idx_minion_runs_correlation_id ON minion_runs (correlation_id);
+
     CREATE TABLE IF NOT EXISTS pending_approvals (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL,
@@ -121,6 +136,8 @@ function initializeSchema(db: BetterSqlite3Database): void {
       decision TEXT,
       decided_at INTEGER
     );
+
+    CREATE INDEX IF NOT EXISTS idx_pending_approvals_decision ON pending_approvals (decision);
 
     CREATE TABLE IF NOT EXISTS tool_call_cache (
       key TEXT PRIMARY KEY,
@@ -135,17 +152,21 @@ function createSqliteSessionStore(db: BetterSqlite3Database): SessionStore {
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   );
   const selectSession = db.prepare('SELECT * FROM sessions WHERE id = ?');
+  const selectAllSessions = db.prepare('SELECT * FROM sessions');
   const insertRun = db.prepare(
     `INSERT INTO minion_runs (id, session_id, minion_type, correlation_id, status, result_json, tokens_used, created_at, completed_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const selectRun = db.prepare('SELECT * FROM minion_runs WHERE id = ?');
+  const selectRunsBySession = db.prepare('SELECT * FROM minion_runs WHERE session_id = ?');
+  const selectRunsByCorrelation = db.prepare('SELECT * FROM minion_runs WHERE correlation_id = ?');
   const updateRun = db.prepare('UPDATE minion_runs SET status = ?, result_json = ?, tokens_used = ?, completed_at = ? WHERE id = ?');
   const insertApproval = db.prepare(
     `INSERT INTO pending_approvals (id, session_id, correlation_id, server_alias, tool_name, params_json, requested_at, timeout_at, decision, decided_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const selectApproval = db.prepare('SELECT * FROM pending_approvals WHERE id = ?');
+  const selectPendingApprovals = db.prepare('SELECT * FROM pending_approvals WHERE decision IS NULL');
   const resolveApprovalStmt = db.prepare('UPDATE pending_approvals SET decision = ?, decided_at = ? WHERE id = ?');
   const selectCache = db.prepare('SELECT value FROM tool_call_cache WHERE key = ?');
   const insertCache = db.prepare('INSERT OR REPLACE INTO tool_call_cache (key, value) VALUES (?, ?)');
@@ -165,6 +186,10 @@ function createSqliteSessionStore(db: BetterSqlite3Database): SessionStore {
     getSession(id: string): Session | undefined {
       const row = selectSession.get(id) as Record<string, unknown> | undefined;
       return row ? rowToSession(row) : undefined;
+    },
+    listSessions(): Session[] {
+      const rows = selectAllSessions.all() as Record<string, unknown>[];
+      return rows.map(rowToSession);
     },
     createMinionRun(run: MinionRun): void {
       insertRun.run(
@@ -190,6 +215,14 @@ function createSqliteSessionStore(db: BetterSqlite3Database): SessionStore {
         id
       );
     },
+    listMinionRunsBySession(sessionId: string): MinionRun[] {
+      const rows = selectRunsBySession.all(sessionId) as Record<string, unknown>[];
+      return rows.map(rowToMinionRun);
+    },
+    listMinionRunsByCorrelationRoot(root: string): MinionRun[] {
+      const rows = selectRunsByCorrelation.all(root) as Record<string, unknown>[];
+      return rows.map(rowToMinionRun);
+    },
     createApproval(approval: PendingApproval): void {
       insertApproval.run(
         approval.id,
@@ -208,6 +241,10 @@ function createSqliteSessionStore(db: BetterSqlite3Database): SessionStore {
       const approval = selectApproval.get(id) as Record<string, unknown> | undefined;
       if (!approval) return;
       resolveApprovalStmt.run(decision, Date.now(), id);
+    },
+    listPendingApprovals(): PendingApproval[] {
+      const rows = selectPendingApprovals.all() as Record<string, unknown>[];
+      return rows.map(rowToApproval);
     },
     getCachedToolCall(key: string): unknown | undefined {
       const row = selectCache.get(key) as { value: string } | undefined;
@@ -233,5 +270,34 @@ function rowToSession(row: Record<string, unknown>): Session {
     correlationRoot: String(row.correlation_root),
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
+  };
+}
+
+function rowToMinionRun(row: Record<string, unknown>): MinionRun {
+  return {
+    id: String(row.id),
+    sessionId: String(row.session_id),
+    minionType: String(row.minion_type),
+    correlationId: String(row.correlation_id),
+    status: String(row.status),
+    resultJson: row.result_json == null ? undefined : String(row.result_json),
+    tokensUsed: row.tokens_used == null ? undefined : Number(row.tokens_used),
+    createdAt: Number(row.created_at),
+    completedAt: row.completed_at == null ? undefined : Number(row.completed_at),
+  };
+}
+
+function rowToApproval(row: Record<string, unknown>): PendingApproval {
+  return {
+    id: String(row.id),
+    sessionId: String(row.session_id),
+    correlationId: String(row.correlation_id),
+    serverAlias: String(row.server_alias),
+    toolName: String(row.tool_name),
+    paramsJson: String(row.params_json),
+    requestedAt: Number(row.requested_at),
+    timeoutAt: Number(row.timeout_at),
+    decision: row.decision == null ? undefined : (String(row.decision) as 'approved' | 'denied'),
+    decidedAt: row.decided_at == null ? undefined : Number(row.decided_at),
   };
 }
