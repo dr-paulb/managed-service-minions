@@ -4,21 +4,41 @@ governance:
       tool_name: merge_pull_request
     - server_alias: github
       tool_name: delete_branch
+    - server_alias: github
+      tool_name: close_pull_request
     - server_alias: ado
       tool_name: merge_pr
     - server_alias: ado
       tool_name: close_work_item
+    - server_alias: ado
+      tool_name: delete_branch
     - server_alias: servicenow
       tool_name: close_incident
+    - server_alias: servicenow
+      tool_name: update_incident
     - server_alias: jira
       tool_name: transition_issue
       params:
         status: Closed
+    - server_alias: filesystem
+      tool_name: delete_file
 
   approval_timeout_minutes: 15
 
   rate_limits:
     default:
+      requests_per_minute: 60
+      burst: 20
+    github:
+      requests_per_minute: 30
+      burst: 10
+    ado:
+      requests_per_minute: 60
+      burst: 20
+    servicenow:
+      requests_per_minute: 60
+      burst: 20
+    jira:
       requests_per_minute: 60
       burst: 20
 
@@ -30,3 +50,11 @@ governance:
       - node_modules/
       - secrets/
       - .env*
+
+  fallback_behavior:
+    on_allowlist_block: escalate_and_terminate
+    on_rate_limit: retry_with_backoff
+    on_circuit_breaker_open: fast_fail_with_retry_after
+    on_approval_timeout: deny
+    on_minion_timeout: retry_up_to_3
+    on_invalid_json_output: retry_once_with_feedback

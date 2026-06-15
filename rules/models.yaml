@@ -15,7 +15,7 @@ tiers:
     deployment: claude-sonnet-4-8
     max_tokens_per_call: 32768
 
-minions:
+agents:
   orchestrator:
     tier: reasoning
     budget: 50000
@@ -34,3 +34,15 @@ minions:
   security-auditor:
     tier: security
     budget: 40000
+
+skills:
+  intent-classification:
+    tier: fast
+  task-decomposition:
+    tier: reasoning
+  delegate-management:
+    tier: reasoning
+  result-synthesis:
+    tier: reasoning
+  approval-gating:
+    tier: reasoning

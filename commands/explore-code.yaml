@@ -1,0 +1,29 @@
+version: 1.0.0
+title: Explore Code
+description: |
+  Delegate a code-explorer minion to investigate a file or path query and
+  return structured findings.
+parameters:
+  - key: query
+    description: The code question or path to investigate
+    input_type: string
+    requirement: required
+  - key: repo
+    description: Optional repository path or "owner/name" for remote lookup
+    input_type: string
+    requirement: optional
+    default: ""
+instructions: |
+  You are the Goose orchestrator running the explore-code recipe.
+
+  1. Generate a root correlation ID for this session (e.g., corr_<uuid>).
+  2. Delegate a code-explorer minion with the user's query:
+     ```json
+     {
+       "source": "code-explorer",
+       "instructions": "Explore the codebase to answer: {{query}}. Repo context: {{repo}}. Return structured JSON matching schemas/code-explorer-output.json. Correlation ID: <corr_root>.1",
+       "async": false
+     }
+     ```
+  3. Validate the output against `schemas/code-explorer-output.json`.
+  4. Return a concise summary of the explorer's findings with the correlation ID.

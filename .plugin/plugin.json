@@ -1,8 +1,8 @@
 {
   "name": "goose-agent-framework",
-  "version": "0.1.0",
-  "description": "Multi-agent orchestration framework for engineering operations.",
-  "repository": "https://github.com/your-org/goose-agent-framework",
+  "version": "0.2.0",
+  "description": "Multi-agent orchestration framework for engineering operations. Includes orchestrator and minion agents, intent/task/result skills, review recipes, and governance rules.",
+  "repository": "https://github.com/dr-pabs/Minions",
   "agents": "./agents/",
   "skills": "./skills/",
   "commands": "./commands/",
