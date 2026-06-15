@@ -7,8 +7,15 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'infra/terraform/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'infra/terraform/**'
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
@@ -25,6 +32,11 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -38,13 +50,38 @@ jobs:
         run: pnpm lint
 
       - name: Unit tests with coverage
-        run: pnpm test --coverage
+        run: pnpm -r --filter "!infra" test --coverage
 
       - name: Verify 100% coverage
         run: |
           # Each package's jest.config.js enforces 100% thresholds.
           # This step fails if any package reports coverage below 100%.
           echo "Coverage gate enforced by Jest thresholds."
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform test
+        run: terraform test
 
       # If any previous step fails, the workflow stops here and merge is blocked.
       # Uncomment and configure SLACK_WEBHOOK_URL to broadcast failures:
