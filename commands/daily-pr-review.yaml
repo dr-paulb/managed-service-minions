@@ -1,11 +1,36 @@
 version: 1.0.0
 title: Daily PR Review
-description: Review all open PRs in the configured repositories.
+description: |
+  Scheduled-style recipe that reviews all open PRs in the configured
+  repositories and posts a structured digest.
 parameters:
   - key: repositories
-    description: Comma-separated list of repos
-    input_type: text
+    description: Comma-separated list of repos in "owner/name" form
+    input_type: string
     requirement: required
+  - key: max_concurrency
+    description: Maximum parallel code-reviewer minions
+    input_type: number
+    requirement: optional
+    default: 3
 instructions: |
-  Use the code-reviewer minion to review each open PR in {{repositories}}.
-  Post a summary to the channel.
+  You are the Goose orchestrator running the daily-pr-review recipe.
+
+  1. Parse {{repositories}} into a list of "owner/name" entries.
+  2. Generate a root correlation ID for this session (e.g., corr_<uuid>).
+  3. For each repository, list open PRs using the toolshed github/ado tools.
+  4. For each open PR, delegate a code-reviewer minion (up to {{max_concurrency}} parallel):
+     ```json
+     {
+       "source": "code-reviewer",
+       "instructions": "Review PR #<number> in <repo>. Return structured JSON matching schemas/code-reviewer-output.json. Correlation ID: <corr_root>.<n>",
+       "async": true
+     }
+     ```
+  5. Collect all async results with `load(source: <task_id>)`.
+  6. Synthesize a morning PR-review digest:
+     - Total PRs reviewed
+     - Approved count
+     - Changes-requested count with major/minor breakdown
+     - Any blocker or security concern
+     - Root correlation ID

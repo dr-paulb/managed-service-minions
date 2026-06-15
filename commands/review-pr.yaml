@@ -1,0 +1,44 @@
+version: 1.0.0
+title: Review Pull Request
+description: |
+  Review a single pull request end-to-end by delegating a code-explorer minion
+  to read the PR context and a code-reviewer minion to analyze the diff,
+  then synthesize a structured review.
+parameters:
+  - key: pr
+    description: PR URL or number (e.g., "342" or "https://github.com/org/repo/pull/342")
+    input_type: string
+    requirement: required
+  - key: repo
+    description: Repository in "owner/name" form (required when pr is a number)
+    input_type: string
+    requirement: optional
+    default: ""
+instructions: |
+  You are the Goose orchestrator running the review-pr recipe.
+
+  1. Determine the PR number and repository from {{pr}} and {{repo}}.
+  2. Generate a root correlation ID for this session (e.g., corr_<uuid>).
+  3. Delegate a code-explorer minion to read the PR context:
+     ```json
+     {
+       "source": "code-explorer",
+       "instructions": "Read the PR context for {{pr}} in repo {{repo}}. Identify the files changed, the purpose of the PR, and any related areas of the codebase. Correlation ID: <corr_root>.1",
+       "async": true
+     }
+     ```
+  4. In parallel, delegate a code-reviewer minion to analyze the diff:
+     ```json
+     {
+       "source": "code-reviewer",
+       "instructions": "Review the diff for PR {{pr}} in repo {{repo}}. Fetch the PR diff, analyze for correctness, readability, performance, security, and test coverage. Return structured JSON matching schemas/code-reviewer-output.json. Correlation ID: <corr_root>.2",
+       "async": true
+     }
+     ```
+  5. Collect both async results with `load(source: <task_id>)`.
+  6. Validate the code-reviewer output against `schemas/code-reviewer-output.json`.
+  7. Synthesize a concise, channel-ready review summary that includes:
+     - PR number and repo
+     - Overall verdict (approved / changes requested)
+     - Key findings with severity
+     - The root correlation ID

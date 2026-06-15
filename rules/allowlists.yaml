@@ -10,6 +10,7 @@ allowlists:
     filesystem:
       - read_file
       - list_directory
+      - search_files
   code_reviewer:
     github:
       - get_pr
@@ -29,10 +30,15 @@ allowlists:
       - create_branch
       - create_or_update_file
       - create_pull_request
+    ado:
+      - create_branch
+      - create_or_update_file
+      - create_pull_request
     filesystem:
       - read_file
       - write_file
       - edit_file
+      - list_directory
   ticket_lookup:
     servicenow:
       - get_incident
@@ -43,10 +49,13 @@ allowlists:
     ado:
       - get_item
       - query_items
+    github:
+      - search_issues
   security_audit:
     github:
       - get_file_contents
       - list_commits
+      - get_vulnerability_alerts
     filesystem:
       - read_file
       - list_directory
@@ -61,3 +70,31 @@ path_scopes:
       - .git/
       - node_modules/
       - secrets/
+      - .env*
+  code_reviewer:
+    mode: allowlist
+    paths:
+      - /repo
+    deny:
+      - .git/
+      - node_modules/
+      - secrets/
+      - .env*
+  pr_create:
+    mode: allowlist
+    paths:
+      - /repo
+    deny:
+      - .git/
+      - node_modules/
+      - secrets/
+      - .env*
+  security_audit:
+    mode: allowlist
+    paths:
+      - /repo
+    deny:
+      - .git/
+      - node_modules/
+      - secrets/
+      - .env*

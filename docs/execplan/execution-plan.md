@@ -20,8 +20,12 @@ This plan turns the design documents in this repository — `../delivery-specifi
   - `extensions/mcp-toolshed` implemented and tested (config, allowlists, rate limiter, circuit breaker, SQLite/memory store, MCP adapter, `executeTool`, MCP server handlers) at 100% coverage.
   - `extensions/slack-bot`, `extensions/teams-bot`, `extensions/agent-dashboard` implemented and tested at 100% coverage.
   - Full local pipeline passes: `pnpm typecheck && pnpm build && pnpm lint && pnpm test --coverage`.
-- [ ] Milestone 1 — Phase 1 Foundation: full agent prompts, SQLite session store wired to Goose, and first end-to-end minion dispatch.
+- [x] (2026-06-15) Milestone 1 — Phase 1 Foundation: full agent prompts, SQLite session store wired to Goose, and first end-to-end minion dispatch.
+  - Delivered: all five minion agent prompts (`code-explorer`, `code-reviewer`, `pr-crafter`, `ticket-analyst`, `security-auditor`) plus `orchestrator.md` with role, model tier, allowlist, output schema, and system prompt.
+  - Delivered: framework skills (`intent-classification`, `task-decomposition`, `delegate-management`, `result-synthesis`, `approval-gating`) with invocation rules, inputs, and outputs.
+  - Delivered: `rules/allowlists.yaml`, `rules/governance.yaml`, and `rules/models.yaml` with per-minion tool lists, destructive-action gating, rate limits, path scopes, fallback behavior, and tier budgets.
 - [ ] Milestone 2 — Phase 2 Minion Framework: orchestrator skill, intent classification, DAG decomposition, structured output schemas, and prompt-quality harness.
+  - Status: In progress. Agent prompts and schemas are wired; remaining work is the prompt-quality harness and full integration tests for DAG execution.
 - [ ] Milestone 3 — Phase 3 Ticket and Review Pipelines: GitHub, Azure DevOps, ServiceNow, and Jira integrations; ticket→fix→PR flow; human approval gates.
 - [ ] Milestone 4 — Phase 4 Platform Hardening: Terraform infrastructure modules, Container Apps, Service Bus, AI Foundry, observability, dashboard, CI/CD, and `terraform test`.
 - [ ] Milestone 5 — Acceptance, disaster recovery, performance/chaos validation, and production handoff.
