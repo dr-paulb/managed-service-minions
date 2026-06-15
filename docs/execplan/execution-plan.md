@@ -28,6 +28,7 @@ This plan turns the design documents in this repository — `../delivery-specifi
   - Status: In progress. Agent prompts and schemas are wired; remaining work is the prompt-quality harness and full integration tests for DAG execution.
 - [ ] Milestone 3 — Phase 3 Ticket and Review Pipelines: GitHub, Azure DevOps, ServiceNow, and Jira integrations; ticket→fix→PR flow; human approval gates.
   - [x] (2026-06-15) GitHub MCP server extension implemented in `extensions/mcp-github/` with PR list, PR details, diff, create, and merge tools; 100% TypeScript test coverage.
+  - [x] (2026-06-15) ServiceNow MCP server extension implemented in `extensions/mcp-servicenow/` with list, get, update, and create incident tools; 100% TypeScript test coverage.
 - [ ] Milestone 4 — Phase 4 Platform Hardening: Terraform infrastructure modules, Container Apps, Service Bus, AI Foundry, observability, dashboard, CI/CD, and `terraform test`.
 - [ ] Milestone 5 — Acceptance, disaster recovery, performance/chaos validation, and production handoff.
 
@@ -343,6 +344,7 @@ What will exist at the end:
 - `extensions/mcp-github/` — standalone MCP server for GitHub PR review and basic PR automation (list, get, diff, create, and merge pull requests). Implemented with 100% TypeScript test coverage.
 - MCP server adapters for GitHub and Azure DevOps in `extensions/mcp-toolshed/servers/` (or imported packages if stable community servers exist).
   - `extensions/mcp-azure-devops/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
+- `extensions/mcp-servicenow/` is implemented as a standalone MCP server extension with 100% TypeScript test coverage.
 - MCP server adapters for ServiceNow and Jira.
 - `commands/daily-pr-review.yaml` and `commands/ticket-poll.yaml` slash-command recipes.
 - `skills/approval-gating/SKILL.md` — skill that teaches the orchestrator to pause destructive actions and request human approval via Slack/Teams.
