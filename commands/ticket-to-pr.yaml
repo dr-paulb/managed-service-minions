@@ -1,0 +1,69 @@
+version: 1.0.0
+title: Ticket to Pull Request
+description: |
+  Turn a ticket into a pull request end-to-end. Reads the ticket, explores the
+  codebase, drafts a fix, and opens a PR. Destructive edits require human
+  approval before the PR is created.
+parameters:
+  - key: ticket
+    description: Ticket URL or identifier (e.g., "PROJ-123" or a ServiceNow incident URL)
+    input_type: string
+    requirement: required
+  - key: system
+    description: Ticket system — "jira", "servicenow", or "azure_devops"
+    input_type: string
+    requirement: required
+  - key: repo
+    description: Repository in "owner/name" form where the fix should be opened
+    input_type: string
+    requirement: required
+  - key: base_branch
+    description: Base branch for the PR
+    input_type: string
+    requirement: optional
+    default: main
+instructions: |
+  You are the Goose orchestrator running the ticket-to-pr recipe.
+
+  Inputs: ticket={{ticket}}, system={{system}}, repo={{repo}}, base_branch={{base_branch}}
+
+  1. Generate a root correlation ID for this session (e.g., corr_<uuid>).
+  2. Delegate a ticket-analyst minion to read the ticket:
+     ```json
+     {
+       "source": "ticket-analyst",
+       "instructions": "Read ticket {{ticket}} from system {{system}}. Extract title, description, acceptance criteria, priority, and any linked code areas. Return structured JSON matching schemas/ticket-analyst-output.json. Correlation ID: <corr_root>.1",
+       "async": true
+     }
+     ```
+  3. In parallel, delegate a code-explorer minion to identify the relevant code:
+     ```json
+     {
+       "source": "code-explorer",
+       "instructions": "Explore repo {{repo}} to find files related to ticket {{ticket}}. Return structured JSON matching schemas/code-explorer-output.json. Correlation ID: <corr_root>.2",
+       "async": true
+     }
+     ```
+  4. Collect both async results with `load(source: <task_id>)`.
+  5. Validate outputs against `schemas/ticket-analyst-output.json` and `schemas/code-explorer-output.json`.
+  6. Present a concise plan to the user:
+     - Ticket summary
+     - Files to change
+     - Proposed code edits
+     Ask for explicit approval before proceeding.
+  7. If approved, delegate a pr-crafter minion to implement the fix:
+     ```json
+     {
+       "source": "pr-crafter",
+       "instructions": "Implement the approved fix for ticket {{ticket}} in repo {{repo}}. Branch from {{base_branch}}, make minimal changes, add/update tests, and commit. Return structured JSON matching schemas/pr-crafter-output.json. Correlation ID: <corr_root>.3",
+       "async": false
+     }
+     ```
+  8. Create a pull request using the github MCP tool:
+     - Tool: `github_create_pull_request`
+     - Parameters: owner/repo from {{repo}}, title from the ticket, head branch from pr-crafter output, base={{base_branch}}, body summarizing the fix and correlation ID.
+  9. Return a channel-ready summary with:
+     - Ticket reference
+     - PR URL
+     - Files changed
+     - Root correlation ID
