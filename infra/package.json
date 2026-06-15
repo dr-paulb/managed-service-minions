@@ -6,7 +6,7 @@
   "description": "Azure infrastructure placeholders for the Goose Agent Framework.",
   "scripts": {
     "build": "echo 'No TypeScript build for infra'",
-    "test": "echo 'No tests for infra'"
+    "test": "cd terraform && sh -c 'terraform test' --"
   },
   "devDependencies": {}
 }
