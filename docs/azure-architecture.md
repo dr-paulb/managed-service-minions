@@ -18,6 +18,8 @@
 8. [Environments](#environments)
 9. [CI/CD Pipeline](#cicd-pipeline)
 10. [Operational Runbooks](#operational-runbooks)
+11. [Terraform Module Inventory](#terraform-module-inventory)
+12. [Discoveries](#discoveries)
 
 ---
 
@@ -260,7 +262,7 @@ Standard tier provides all messaging features the framework needs. Large context
 Provisioned Throughput (PTU) guarantees capacity and predictable cost. Pay-as-you-go (PayGo) is cheaper at low volume but may throttle under load.
 
 | Scenario | Recommendation |
-|---|---|
+|---|---|---|
 | Dev/Staging | PayGo — minimal cost |
 | Production, <200 sessions/day | PayGo — cheaper than PTU minimum |
 | Production, >200 sessions/day | PTU for `reasoning` and `code_review` tiers |
@@ -399,15 +401,12 @@ User-Assigned Managed Identities
 
 Key Vault uses **RBAC authorization** (not legacy Access Policies) for consistent Azure RBAC across all resources.
 
-```yaml
-# Bicep example
-resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(kv.id, miOrch.id, 'Key Vault Secrets User')
-  properties: {
-    principalId: miOrch.properties.principalId
-    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6') // Key Vault Secrets User
-    principalType: 'ServicePrincipal'
-  }
+```hcl
+# Terraform example
+resource "azurerm_role_assignment" "kv_role" {
+  scope                = azurerm_key_vault.main.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.orchestrator.principal_id
 }
 ```
 
@@ -587,15 +586,15 @@ flowchart LR
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryTextColor': '#1a1a1a', 'lineColor': '#555'}}}%%
 flowchart TB
     pr_open["PR Opened"]
-    lint["Lint\nBicep, YAML, Markdown"]
+    lint["Lint\nTerraform, YAML, Markdown"]
     unit_test["Unit Tests\nper extension"]
     preview["Preview Deploy\n(dev env)"]
     
     merge["Merge to main"]
     build["Build Images\norchestrator, bots"]
     push["Push to ACR\nlatest + git-sha"]
-    infra_plan["Bicep Plan\n(what-if)"]
-    infra_apply["Bicep Apply"]
+    infra_plan["Terraform Plan"]
+    infra_apply["Terraform Apply"]
     
     staging_canary["Staging Canary\n10% traffic, 15 min"]
     staging_full["Staging Full"]
@@ -626,7 +625,7 @@ flowchart TB
 GitHub Repo: org/goose-agent-framework
 │
 ├── PR opened
-│   ├── Lint (Bicep, YAML, Markdown)
+│   ├── Lint (Terraform, YAML, Markdown)
 │   ├── Unit tests (per extension)
 │   └── Preview deployment (dev environment)
 │
@@ -638,8 +637,8 @@ GitHub Repo: org/goose-agent-framework
 │   ├── Push to ACR
 │   │   ├── Tag: latest
 │   │   └── Tag: git-sha
-│   ├── Deploy infrastructure (Bicep)
-│   │   ├── Plan (what-if)
+│   ├── Deploy infrastructure (Terraform)
+│   │   ├── Plan
 │   │   └── Apply
 │   └── Deploy containers
 │       ├── Staging: canary (10% traffic, 15 min)
@@ -732,7 +731,7 @@ flowchart TB
     alert["⚠️ Grafana Alert:\n'Orchestrator replicas = 0'\nSev-1 → Teams + SMS"]
     check_logs["Check Container Apps logs\nLog Analytics KQL"]
     diagnose{"Diagnosis?"}
-    oom["OOM Kill\nIncrease memory\nin Bicep"]
+    oom["OOM Kill\nIncrease memory\nin Terraform"]
     startup["Startup Failure\nCheck ACR image\npull logs"]
     config["Config Error\nCheck provider.yaml\nsyntax"]
     respawn["KEDA auto-respawns\ncontainer"]
@@ -761,7 +760,7 @@ flowchart TB
 
 1. Grafana alert: "Orchestrator replicas = 0" (Sev-1)
 2. Check Container Apps logs in Log Analytics
-3. If OOM: check SQLite size; increase memory allocation in Bicep
+3. If OOM: check SQLite size; increase memory allocation in Terraform
 4. If startup failure: check container image pull logs in ACR
 5. KEDA automatically respawns the container
 6. SQLite restored from latest Blob backup (<15 min RPO)
@@ -779,7 +778,7 @@ flowchart TB
     wait["Monitor 1 more hour\nMay be transient spike"]
     increase_paygo["Increase TPM\nin Foundry deployment\n(PayGo)"]
     increase_ptu["Provision additional\nPTU units"]
-    bicep["Update Bicep module\n+ PR + deploy"]
+    terraform["Update Terraform module\n+ PR + deploy"]
     monitor_result["Monitor 1 hour"]
     still_throttling{"Still throttling?"}
     resolved["Throttling resolved ✅"]
@@ -789,16 +788,16 @@ flowchart TB
     sustained -->|"no, transient"| wait
     wait --> sustained
     sustained -->|"yes"| increase_paygo
-    increase_paygo --> bicep
-    increase_ptu --> bicep
-    bicep --> monitor_result
+    increase_paygo --> terraform
+    increase_ptu --> terraform
+    terraform --> monitor_result
     monitor_result --> still_throttling
     still_throttling -->|"yes"| increase_paygo
     still_throttling -->|"no"| resolved
     
     style trigger fill:#fadbd8,stroke:#e6a8a0,color:#1a1a1a
     style resolved fill:#d5f5e3,stroke:#82c091,color:#1a1a1a
-    style bicep fill:#fcf3cf,stroke:#d4ac0d,color:#1a1a1a
+    style terraform fill:#fcf3cf,stroke:#d4ac0d,color:#1a1a1a
 ```
 
 1. Grafana alert: "AI Foundry throttling rate > 5%" (Sev-2)
@@ -806,5 +805,51 @@ flowchart TB
 3. If sustained >2 hours: increase TPM for affected tier
    - PayGo: increase capacity in AI Foundry deployment settings
    - PTU: provision additional PTU units
-4. Update Bicep module → PR → deploy
+4. Update Terraform module → PR → deploy
 5. Monitor for 1 hour; if throttling persists, repeat
+
+---
+
+## Terraform Module Inventory
+
+Infrastructure is defined in `infra/terraform/` using Terraform 1.9+ with the `azurerm`, `azapi`, and `random` providers.
+
+| Module | Path | Purpose |
+|---|---|---|
+| `resource_group` | `modules/resource_group/` | Resource group container |
+| `networking` | `modules/networking/` | VNet `10.0.0.0/16`, Container Apps subnet, private endpoint subnet, NSG |
+| `observability` | `modules/observability/` | Log Analytics workspace |
+| `managed_identity` | `modules/managed_identity/` | User-assigned identities for orchestrator and bots |
+| `keyvault` | `modules/keyvault/` | Key Vault with RBAC and role assignments |
+| `storage` | `modules/storage/` | Storage account, `ToolCallLog` table, blob containers, role assignments |
+| `service_bus` | `modules/service_bus/` | Standard namespace, `minion-tasks` topic, 5 subscriptions, role assignments |
+| `container_registry` | `modules/container_registry/` | Basic ACR and role assignments |
+| `container_apps` | `modules/container_apps/` | Container Apps Environment, orchestrator, slack bot, teams bot, KEDA scale rule |
+| `ai_foundry` | `modules/ai_foundry/` | AI Hub and AI Project via `azapi`, model deployments |
+| `grafana` | `modules/grafana/` | Managed Grafana Essential, role assignments |
+
+Root module files:
+
+- `main.tf` — wires all child modules together.
+- `variables.tf` — `name_prefix`, `environment`, `location`, `tags`, `enable_grafana`, `ai_model_deployments`.
+- `outputs.tf` — resource group name, storage account name, service bus endpoint, ACR login server, Key Vault URI, Container App Environment ID.
+- `providers.tf` — Terraform >= 1.9, `azurerm` ~> 3.0, `azapi` ~> 1.0, `random` ~> 3.0.
+- `backend.tf` — `backend "azurerm" {}` placeholder (credentials supplied at runtime).
+
+Environment wrappers:
+
+- `environments/dev/main.tf` — thin wrapper calling the root module.
+- `environments/dev/terraform.tfvars` — dev defaults.
+
+### State Backend
+
+The root module declares `backend "azurerm" {}` with no credentials. CI/CD and operators supply the storage account, container, key, and subscription details via `-backend-config` or environment variables. State files and `.terraform/` are ignored by `.gitignore`; never commit them.
+
+---
+
+## Discoveries
+
+- **AI Foundry Hub and Project require `azapi`.** The `azurerm` provider does not natively expose AI Foundry Hub/Project resources as of v3.x, so the `modules/ai_foundry` uses `azapi_resource` with `Microsoft.MachineLearningServices/workspaces` and `kind = "Hub"` / `"Project"`.
+- **Container Apps Environment requires a Log Analytics workspace.** `azurerm_container_app_environment` needs `log_analytics_workspace_id`; observability is provisioned before compute.
+- **Globally unique names need random suffixes.** Storage accounts and container registries must be globally unique and are generated with `random_string` plus the `name_prefix` and `environment` values.
+- **Key Vault soft delete is always enabled in `azurerm` v3.** The `soft_delete_enabled` argument was removed in v3.x because soft delete is mandatory; the module exposes an output confirming soft delete is active and sets `soft_delete_retention_days` to 90 by default.

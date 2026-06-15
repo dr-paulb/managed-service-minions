@@ -124,7 +124,7 @@ See [`./docs/logical-architecture.md`](./docs/logical-architecture.md), [`./docs
 │   ├── slack-bot/              # Slack ingress/egress MCP server
 │   ├── teams-bot/              # Teams ingress/egress MCP server
 │   └── agent-dashboard/        # Dashboard backend MCP server
-├── infra/                      # Azure Bicep modules
+├── infra/                      # Azure Terraform modules
 ├── test/                       # Integration, E2E, prompt-quality, chaos tests
 ├── .github/workflows/          # CI/CD
 └── docs/
@@ -280,16 +280,20 @@ Production deployment targets Azure:
 - **Key Vault** for secrets
 - **Log Analytics + Managed Grafana** for observability
 
-Infrastructure is defined in [`infra/bicep/`](./infra/bicep/) and deployed via GitHub Actions using OIDC federation. CI/CD workflows live in [`.github/workflows/`](./.github/workflows/).
+Infrastructure is defined in [`infra/terraform/`](./infra/terraform/) and deployed via GitHub Actions using OIDC federation. CI/CD workflows live in [`.github/workflows/`](./.github/workflows/).
 
 High-level deploy steps:
 
 ```bash
 az login
-az deployment group create \
-  --resource-group goose-framework-dev \
-  --template-file infra/bicep/main.bicep \
-  --parameters environment=dev
+cd infra/terraform
+terraform init \
+  -backend-config="resource_group_name=<STATE_RG>" \
+  -backend-config="storage_account_name=<STATE_SA>" \
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=dev.terraform.tfstate"
+terraform plan -var-file=environments/dev/terraform.tfvars
+terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
 See [`./docs/azure-architecture.md`](./docs/azure-architecture.md) and [`./docs/disaster-recovery.md`](./docs/disaster-recovery.md) for details.

@@ -31,6 +31,12 @@ logs/
 # Azure deployment outputs
 *.bicepparam.local
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
 # Misc
 npm-debug.log*
 pnpm-debug.log*
