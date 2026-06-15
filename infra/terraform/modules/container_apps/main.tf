@@ -10,7 +10,7 @@ resource "azurerm_container_app_environment" "main" {
 
 locals {
   secret_keys  = toset(keys(nonsensitive(var.secrets)))
-  secret_names = { for key in local.secret_keys : key => replace(lower(key), "/[^a-z0-9.-]/", "-") }
+  secret_names = { for key in local.secret_keys : key => replace(lower(key), "/[^a-z0-9-]/", "-") }
 }
 
 resource "azurerm_container_app" "orchestrator" {
