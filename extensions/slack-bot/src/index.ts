@@ -1,11 +1,37 @@
-import { AcpClient } from './acp-client.js';
+import { App } from '@slack/bolt';
+import { spawn } from 'node:child_process';
+import { loadConfig } from './config.js';
+import { createGooseRunner } from './goose-runner.js';
+import { createSlackBot } from './slack-bot.js';
 
-const acpUrl = process.env.GOOSE_ACP_URL ?? 'ws://localhost:3284/acp';
-const acpToken = process.env.GOOSE_ACP_TOKEN ?? '';
+function main(): void {
+  const config = loadConfig();
 
-const client = new AcpClient(acpUrl, acpToken);
+  const app = new App({
+    token: config.slackBotToken,
+    signingSecret: config.slackSigningSecret,
+    appToken: config.slackAppToken,
+    socketMode: true,
+  });
 
-client.connect().catch((err) => {
-  console.error('Slack bot failed to connect to Goose ACP', err);
+  const runner = createGooseRunner(
+    spawn,
+    config.gooseExecutable,
+    config.gooseRecipe,
+    config.goosePluginPath
+  );
+
+  const bot = createSlackBot(app, config, runner);
+
+  bot.start().catch((err) => {
+    console.error('Slack bot failed to start', err);
+    process.exit(1);
+  });
+}
+
+try {
+  main();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
-});
+}
