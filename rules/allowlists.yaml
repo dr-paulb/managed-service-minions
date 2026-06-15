@@ -64,7 +64,7 @@ path_scopes:
       - node_modules/
       - secrets/
       - .env*
-  pr_crafter:
+  pr_create:
     mode: allowlist
     paths:
       - /repo
