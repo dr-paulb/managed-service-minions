@@ -8,6 +8,10 @@ resource "azurerm_container_app_environment" "main" {
   tags = var.tags
 }
 
+locals {
+  secret_keys = toset(keys(nonsensitive(var.secrets)))
+}
+
 resource "azurerm_container_app" "orchestrator" {
   name                         = var.orchestrator.name
   resource_group_name          = var.resource_group_name
@@ -38,10 +42,10 @@ resource "azurerm_container_app" "orchestrator" {
       }
 
       dynamic "env" {
-        for_each = var.secrets
+        for_each = local.secret_keys
         content {
-          name        = env.key
-          secret_name = env.key
+          name        = env.value
+          secret_name = env.value
         }
       }
     }
@@ -65,10 +69,10 @@ resource "azurerm_container_app" "orchestrator" {
   }
 
   dynamic "secret" {
-    for_each = var.secrets
+    for_each = local.secret_keys
     content {
-      name  = secret.key
-      value = secret.value
+      name  = secret.value
+      value = var.secrets[secret.value]
     }
   }
 
@@ -109,20 +113,20 @@ resource "azurerm_container_app" "slack_bot" {
       }
 
       dynamic "env" {
-        for_each = var.secrets
+        for_each = local.secret_keys
         content {
-          name        = env.key
-          secret_name = env.key
+          name        = env.value
+          secret_name = env.value
         }
       }
     }
   }
 
   dynamic "secret" {
-    for_each = var.secrets
+    for_each = local.secret_keys
     content {
-      name  = secret.key
-      value = secret.value
+      name  = secret.value
+      value = var.secrets[secret.value]
     }
   }
 
@@ -163,20 +167,20 @@ resource "azurerm_container_app" "teams_bot" {
       }
 
       dynamic "env" {
-        for_each = var.secrets
+        for_each = local.secret_keys
         content {
-          name        = env.key
-          secret_name = env.key
+          name        = env.value
+          secret_name = env.value
         }
       }
     }
   }
 
   dynamic "secret" {
-    for_each = var.secrets
+    for_each = local.secret_keys
     content {
-      name  = secret.key
-      value = secret.value
+      name  = secret.value
+      value = var.secrets[secret.value]
     }
   }
 
