@@ -29,6 +29,7 @@ function makeStore(): SessionStore {
     listMinionRunsBySession: jest.fn(),
     listMinionRunsByCorrelationRoot: jest.fn(),
     createApproval: jest.fn(),
+    getApproval: jest.fn().mockReturnValue(undefined),
     resolveApproval: jest.fn(),
     listPendingApprovals: jest.fn(),
     getCachedToolCall: jest.fn(),

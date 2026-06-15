@@ -150,8 +150,9 @@ describe('server', () => {
       await startToolshedServer(3000);
       const listToolsHandler = mockSetRequestHandler.mock.calls[0][1] as (req: unknown) => Promise<{ tools: Array<{ name: string }> }>;
       const response = await listToolsHandler?.({});
-      expect(response.tools).toHaveLength(1);
-      expect(response.tools[0].name).toBe('execute_tool');
+      expect(response.tools).toHaveLength(2);
+      expect(response.tools.map((t) => t.name)).toContain('execute_tool');
+      expect(response.tools.map((t) => t.name)).toContain('resolve_approval');
     });
 
     it('invokes the CallTool handler', async () => {
@@ -197,6 +198,23 @@ describe('server', () => {
       const callToolHandler = mockSetRequestHandler.mock.calls[1][1] as (req: unknown) => Promise<{ content: Array<{ text: string }> }>;
       const response = await callToolHandler?.({ params: {} });
       expect(response.content[0].text).toContain('error');
+    });
+
+    it('invokes the resolve_approval handler', async () => {
+      process.env.TOOLSHED_ADAPTERS = JSON.stringify([]);
+      await startToolshedServer(3000);
+      const callToolHandler = mockSetRequestHandler.mock.calls[1][1] as (req: unknown) => Promise<{ content: Array<{ text: string }> }>;
+      const response = await callToolHandler?.({
+        params: {
+          name: 'resolve_approval',
+          arguments: {
+            approval_id: 'appr_1',
+            decision: 'approved',
+          },
+        },
+      });
+      expect(response.content[0].text).toContain('error');
+      expect(response.content[0].text).toContain('appr_1');
     });
   });
 });

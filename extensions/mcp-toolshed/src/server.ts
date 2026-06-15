@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import { executeTool, createDefaultToolshedState, initializeToolshed } from './toolshed.js';
+import { executeTool, resolveApproval, createDefaultToolshedState, initializeToolshed, type ToolResult } from './toolshed.js';
 import { loadAllowlists, loadGovernance } from './config.js';
 import { createSqliteStore } from './store.js';
 import { createRateLimiter } from './rate-limiter.js';
@@ -40,6 +40,19 @@ const executeToolDefinition: Tool = {
       attempt: { type: 'integer' },
     },
     required: ['correlation_id', 'minion_type', 'server_alias', 'tool_name'],
+  },
+};
+
+const resolveApprovalDefinition: Tool = {
+  name: 'resolve_approval',
+  description: 'Approve or deny a pending destructive-action approval request.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      approval_id: { type: 'string' },
+      decision: { type: 'string', enum: ['approved', 'denied'] },
+    },
+    required: ['approval_id', 'decision'],
   },
 };
 
@@ -102,22 +115,28 @@ export async function startToolshedServer(_port: number): Promise<void> {
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [executeToolDefinition],
+    tools: [executeToolDefinition, resolveApprovalDefinition],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const args = request.params.arguments ?? {};
-    const result = await executeTool(
-      {
-        teamId: String(args.team_id ?? 'default'),
-        minionType: String(args.minion_type),
-        correlationId: String(args.correlation_id),
-        attempt: Number(args.attempt ?? 1),
-      },
-      String(args.server_alias),
-      String(args.tool_name),
-      args.params
-    );
+    let result: ToolResult;
+
+    if (request.params.name === 'resolve_approval') {
+      result = resolveApproval(String(args.approval_id), String(args.decision) as 'approved' | 'denied');
+    } else {
+      result = await executeTool(
+        {
+          teamId: String(args.team_id ?? 'default'),
+          minionType: String(args.minion_type),
+          correlationId: String(args.correlation_id),
+          attempt: Number(args.attempt ?? 1),
+        },
+        String(args.server_alias),
+        String(args.tool_name),
+        args.params
+      );
+    }
 
     return {
       content: [{ type: 'text', text: JSON.stringify(result) }],

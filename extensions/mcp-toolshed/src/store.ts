@@ -35,6 +35,9 @@ export function createMemoryStore(): SessionStore {
     createApproval(approval: PendingApproval): void {
       approvals.set(approval.id, approval);
     },
+    getApproval(id: string): PendingApproval | undefined {
+      return approvals.get(id);
+    },
     resolveApproval(id: string, decision: 'approved' | 'denied'): void {
       const approval = approvals.get(id);
       if (approval) {
@@ -204,6 +207,10 @@ function createSqliteSessionStore(db: BetterSqlite3Database): SessionStore {
         approval.decidedAt ?? null
       );
     },
+    getApproval(id: string): PendingApproval | undefined {
+      const row = selectApproval.get(id) as Record<string, unknown> | undefined;
+      return row ? rowToApproval(row) : undefined;
+    },
     resolveApproval(id: string, decision: 'approved' | 'denied'): void {
       const approval = selectApproval.get(id) as Record<string, unknown> | undefined;
       if (!approval) return;
@@ -233,5 +240,20 @@ function rowToSession(row: Record<string, unknown>): Session {
     correlationRoot: String(row.correlation_root),
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
+  };
+}
+
+function rowToApproval(row: Record<string, unknown>): PendingApproval {
+  return {
+    id: String(row.id),
+    sessionId: String(row.session_id),
+    correlationId: String(row.correlation_id),
+    serverAlias: String(row.server_alias),
+    toolName: String(row.tool_name),
+    paramsJson: String(row.params_json),
+    requestedAt: Number(row.requested_at),
+    timeoutAt: Number(row.timeout_at),
+    decision: row.decision == null ? undefined : (String(row.decision) as 'approved' | 'denied'),
+    decidedAt: row.decided_at == null ? undefined : Number(row.decided_at),
   };
 }

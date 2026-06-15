@@ -39,6 +39,7 @@ export interface SessionStore {
   createMinionRun(run: MinionRun): void;
   updateMinionRun(id: string, patch: Partial<MinionRun>): void;
   createApproval(approval: PendingApproval): void;
+  getApproval(id: string): PendingApproval | undefined;
   resolveApproval(id: string, decision: 'approved' | 'denied'): void;
   getCachedToolCall(key: string): unknown | undefined;
   setCachedToolCall(key: string, value: unknown): void;

@@ -57,7 +57,7 @@ describe('store', () => {
       expect(store.getSession('r1')).toBeUndefined();
     });
 
-    it('stores and resolves approvals', () => {
+    it('stores, retrieves, and resolves approvals', () => {
       const store = createMemoryStore();
       const approval: PendingApproval = {
         id: 'a1',
@@ -70,6 +70,8 @@ describe('store', () => {
         timeoutAt: 2,
       };
       store.createApproval(approval);
+      expect(store.getApproval('a1')).toBe(approval);
+      expect(store.getApproval('missing')).toBeUndefined();
       store.resolveApproval('a1', 'approved');
       expect(approval.decision).toBe('approved');
       expect(approval.decidedAt).toBeDefined();
@@ -212,6 +214,73 @@ describe('store', () => {
 
       const store = createSqliteStore(':memory:', DatabaseCtor);
       store.resolveApproval('missing', 'denied');
+    });
+
+    it('retrieves an approval from sqlite', () => {
+      const prepared = createStatement({
+        get: jest.fn().mockReturnValue({
+          id: 'a1',
+          session_id: 's1',
+          correlation_id: 'corr_1',
+          server_alias: 'github',
+          tool_name: 'merge_pull_request',
+          params_json: '{}',
+          requested_at: 1,
+          timeout_at: 2,
+          decision: 'approved',
+          decided_at: 3,
+        }) as unknown as Statement['get'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const approval = store.getApproval('a1');
+      expect(approval).toMatchObject({ id: 'a1', decision: 'approved', decidedAt: 3 });
+    });
+
+    it('returns undefined for missing sqlite approvals', () => {
+      const prepared = createStatement();
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      expect(store.getApproval('missing')).toBeUndefined();
+    });
+
+    it('maps null sqlite approval decision fields to undefined', () => {
+      const prepared = createStatement({
+        get: jest.fn().mockReturnValue({
+          id: 'a1',
+          session_id: 's1',
+          correlation_id: 'corr_1',
+          server_alias: 'github',
+          tool_name: 'merge_pull_request',
+          params_json: '{}',
+          requested_at: 1,
+          timeout_at: 2,
+          decision: null,
+          decided_at: null,
+        }) as unknown as Statement['get'],
+      });
+      const db = {
+        exec: jest.fn(),
+        prepare: jest.fn().mockReturnValue(prepared),
+        close: jest.fn(),
+      };
+      const DatabaseCtor = jest.fn().mockReturnValue(db) as unknown as DatabaseCtor;
+
+      const store = createSqliteStore(':memory:', DatabaseCtor);
+      const approval = store.getApproval('a1');
+      expect(approval).toMatchObject({ decision: undefined, decidedAt: undefined });
     });
 
     it('returns undefined when cache row is missing', () => {
