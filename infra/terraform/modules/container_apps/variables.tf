@@ -53,6 +53,25 @@ variable "teams_bot" {
   })
 }
 
+variable "dashboard" {
+  description = "Configuration for the agent dashboard container app."
+  type = object({
+    name        = string
+    identity_id = string
+    image       = string
+    port        = optional(number, 3001)
+  })
+}
+
+variable "toolshed" {
+  description = "Configuration for the MCP toolshed container app."
+  type = object({
+    name        = string
+    identity_id = string
+    image       = string
+  })
+}
+
 variable "env_vars" {
   description = "Plain environment variables for container apps."
   type        = map(string)

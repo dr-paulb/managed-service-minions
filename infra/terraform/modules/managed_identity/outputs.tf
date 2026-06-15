@@ -27,3 +27,23 @@ output "teams_bot_principal_id" {
   description = "Teams bot managed identity principal ID."
   value       = azurerm_user_assigned_identity.main["teams_bot"].principal_id
 }
+
+output "dashboard_id" {
+  description = "Dashboard managed identity ID."
+  value       = azurerm_user_assigned_identity.main["dashboard"].id
+}
+
+output "dashboard_principal_id" {
+  description = "Dashboard managed identity principal ID."
+  value       = azurerm_user_assigned_identity.main["dashboard"].principal_id
+}
+
+output "toolshed_id" {
+  description = "Toolshed managed identity ID."
+  value       = azurerm_user_assigned_identity.main["toolshed"].id
+}
+
+output "toolshed_principal_id" {
+  description = "Toolshed managed identity principal ID."
+  value       = azurerm_user_assigned_identity.main["toolshed"].principal_id
+}
