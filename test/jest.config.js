@@ -13,7 +13,8 @@ export default {
   },
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^framework-core$': '<rootDir>/../packages/framework-core/src/index.ts'
   },
   testPathIgnorePatterns: ['/node_modules/', '/dist/']
 };
