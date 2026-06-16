@@ -16,7 +16,7 @@
 - [Repository layout](#repository-layout)
 - [Getting started](#getting-started)
 - [Development workflow](#development-workflow)
-- [Running locally with Goose](#running-locally-with-goose)
+- [Running locally with Minions](#running-locally-with-goose)
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Security & governance](#security--governance)
