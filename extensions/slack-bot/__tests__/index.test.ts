@@ -1,36 +1,73 @@
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-const mockAppStart = jest.fn(() => Promise.resolve());
-const mockAppStop = jest.fn(() => Promise.resolve());
-const mockAppEvent = jest.fn();
-const mockAppMessage = jest.fn();
+const mockStart = jest.fn<() => Promise<void>>();
+const mockStop = jest.fn<() => Promise<unknown>>();
+const MockSlackBot = {
+  createSlackBot: jest.fn().mockReturnValue({ start: mockStart, stop: mockStop }),
+  createEchoRunner: jest.fn().mockReturnValue({ run: jest.fn() }),
+};
 
+jest.unstable_mockModule('../src/slack-bot.js', () => MockSlackBot);
+
+const mockSqliteStore = { createSession: jest.fn() };
+const createSqliteStore = jest.fn().mockReturnValue(mockSqliteStore);
+
+jest.unstable_mockModule('mcp-toolshed', () => ({
+  createSqliteStore,
+}));
+
+const mockAppConstructor = jest.fn();
 jest.unstable_mockModule('@slack/bolt', () => ({
-  App: jest.fn(() => ({
-    start: mockAppStart,
-    stop: mockAppStop,
-    event: mockAppEvent,
-    message: mockAppMessage,
-  })),
+  App: mockAppConstructor,
 }));
 
-jest.unstable_mockModule('node:child_process', () => ({
-  spawn: jest.fn(),
-}));
+describe('slack-bot index', () => {
+  const originalEnv = process.env;
+  let exitSpy: jest.SpiedFunction<typeof process.exit>;
+  let errorSpy: jest.SpiedFunction<typeof console.error>;
 
-describe('slack-bot entry point success path', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockAppStart.mockResolvedValue(undefined);
+    jest.resetModules();
+    process.env = { ...originalEnv };
+    exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockStart.mockReset().mockResolvedValue(undefined);
+    mockStop.mockReset().mockResolvedValue(undefined);
+    MockSlackBot.createSlackBot.mockClear();
+    MockSlackBot.createEchoRunner.mockClear();
+    createSqliteStore.mockClear();
+    mockAppConstructor.mockReset().mockReturnValue({});
   });
 
-  it('starts the Slack bot when env vars are present', async () => {
-    process.env.SLACK_BOT_TOKEN = 'xoxb-token';
-    process.env.SLACK_SIGNING_SECRET = 'secret';
-    process.env.SLACK_APP_TOKEN = 'xapp-token';
+  afterEach(() => {
+    process.env = originalEnv;
+    exitSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it('creates a Bolt app and starts the bot with env config', async () => {
+    process.env.SLACK_SIGNING_SECRET = 'signing';
+    process.env.SLACK_BOT_TOKEN = 'token';
+    process.env.PORT = '4000';
+    process.env.SQLITE_PATH = '/data/bot.db';
 
     await import('../src/index.js');
 
-    expect(mockAppStart).toHaveBeenCalled();
+    expect(mockAppConstructor).toHaveBeenCalledWith({
+      signingSecret: 'signing',
+      token: 'token',
+    });
+    expect(createSqliteStore).toHaveBeenCalledWith('/data/bot.db');
+    expect(MockSlackBot.createSlackBot).toHaveBeenCalled();
+    expect(mockStart).toHaveBeenCalled();
+  });
+
+  it('exits when the bot fails to start', async () => {
+    mockStart.mockRejectedValueOnce(new Error('start failed'));
+
+    await import('../src/index.js');
+
+    expect(errorSpy).toHaveBeenCalledWith('Slack bot failed to start', expect.any(Error));
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });

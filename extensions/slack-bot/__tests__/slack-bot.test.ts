@@ -1,227 +1,336 @@
-import { jest } from '@jest/globals';
-import type { App, SayFn, SlackEventMiddlewareArgs } from '@slack/bolt';
-import type { AppMentionEvent, GenericMessageEvent } from '@slack/types';
-import { createSlackBot } from '../src/slack-bot.js';
-import type { GooseRunner } from '../src/goose-runner.js';
-import type { SlackBotConfig } from '../src/config.js';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { App as BoltApp } from '@slack/bolt';
+import { createSlackBot, createEchoRunner } from '../src/slack-bot.js';
+import type { IngressRunner, SessionStore } from 'framework-core';
+
+class MockApp {
+  public eventHandlers: Record<string, (args: unknown) => Promise<void>> = {};
+  public messageHandlers: Array<(args: unknown) => Promise<void>> = [];
+
+  event = jest.fn((name: string, handler: (args: unknown) => Promise<void>) => {
+    this.eventHandlers[name] = handler;
+  });
+
+  message = jest.fn((handler: (args: unknown) => Promise<void>) => {
+    this.messageHandlers.push(handler);
+  });
+
+  start = jest.fn().mockResolvedValue(undefined);
+  stop = jest.fn().mockResolvedValue(undefined);
+}
+
+function makeStore(): SessionStore {
+  return {
+    createSession: jest.fn(),
+    getSession: jest.fn().mockReturnValue(undefined),
+    listSessions: jest.fn(),
+    createMinionRun: jest.fn(),
+    updateMinionRun: jest.fn(),
+    listMinionRunsBySession: jest.fn(),
+    listMinionRunsByCorrelationRoot: jest.fn(),
+    createApproval: jest.fn(),
+    getApproval: jest.fn().mockReturnValue(undefined),
+    resolveApproval: jest.fn(),
+    listPendingApprovals: jest.fn(),
+    createAuditEntry: jest.fn(),
+    listAuditEntries: jest.fn().mockReturnValue([]),
+    getCachedToolCall: jest.fn(),
+    setCachedToolCall: jest.fn(),
+  };
+}
 
 describe('createSlackBot', () => {
-  const config: SlackBotConfig = {
-    slackBotToken: 'xoxb-token',
-    slackSigningSecret: 'secret',
-    slackAppToken: 'xapp-token',
-    gooseExecutable: 'goose',
-    goosePluginPath: '/plugin',
-    gooseRecipe: 'commands/ticket-to-pr.yaml',
-  };
-
-  let handlers: Record<string, (args: unknown) => Promise<void>>;
-  let say: jest.Mock<ReturnType<SayFn>, Parameters<SayFn>>;
-  let runner: { run: jest.Mock<Promise<string>, [string]> };
-  let app: Pick<App, 'event' | 'message' | 'start' | 'stop'>;
-  let bot: { start: () => Promise<void>; stop: () => Promise<void> };
+  let app: MockApp;
+  let store: SessionStore;
+  let runner: IngressRunner;
+  let say: jest.Mock<() => Promise<void>>;
 
   beforeEach(() => {
-    handlers = {};
-    say = jest.fn() as jest.Mock<ReturnType<SayFn>, Parameters<SayFn>>;
-    runner = { run: jest.fn() as jest.Mock<Promise<string>, [string]> };
-
-    app = {
-      event: jest.fn((name: string, handler: (args: unknown) => Promise<void>) => {
-        handlers[name] = handler;
-      }) as unknown as App['event'],
-      message: jest.fn((handler: (args: unknown) => Promise<void>) => {
-        handlers['message'] = handler;
-      }) as unknown as App['message'],
-      start: jest.fn(() => Promise.resolve()) as unknown as App['start'],
-      stop: jest.fn(() => Promise.resolve()) as unknown as App['stop'],
-    };
-
-    bot = createSlackBot(app as unknown as App, config, runner as unknown as GooseRunner);
+    app = new MockApp();
+    store = makeStore();
+    runner = { run: jest.fn().mockResolvedValue({ text: 'Done' }) };
+    say = jest.fn().mockResolvedValue(undefined);
   });
 
   it('registers app_mention and message handlers', () => {
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
+
     expect(app.event).toHaveBeenCalledWith('app_mention', expect.any(Function));
     expect(app.message).toHaveBeenCalledWith(expect.any(Function));
   });
 
-  it('handles app_mention events and replies in thread', async () => {
-    runner.run.mockResolvedValue('Got it');
-    const event: AppMentionEvent = {
-      type: 'app_mention',
-      user: 'U1',
-      text: '<@U2> review PR 42',
-      ts: '1234',
-      thread_ts: '1234',
-      channel: 'C1',
-      event_ts: '1234',
-    };
+  it('handles app_mention events and replies with runner text', async () => {
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
 
-    await handlers['app_mention']({ event, say } as unknown as SlackEventMiddlewareArgs<'app_mention'>);
+    await app.eventHandlers['app_mention']({
+      event: {
+        type: 'app_mention',
+        text: '<@U123> review PR #42',
+        team: 'T1',
+        channel: 'C1',
+        user: 'U42',
+        thread_ts: '123.456',
+      },
+      say,
+    });
 
-    expect(runner.run).toHaveBeenCalledWith('review PR 42');
-    expect(say).toHaveBeenCalledWith({ text: 'Got it', thread_ts: '1234' });
+    expect(runner.run).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platform: 'slack',
+        teamId: 'T1',
+        channelId: 'C1',
+        userId: 'U42',
+        text: 'review PR #42',
+        threadId: '123.456',
+      })
+    );
+    expect(say).toHaveBeenCalledWith('Done');
+  });
+
+  it('greets the user when the mention contains only the bot mention', async () => {
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
+
+    await app.eventHandlers['app_mention']({
+      event: {
+        type: 'app_mention',
+        text: '<@U123>',
+        team: 'T1',
+        channel: 'C1',
+        user: 'U42',
+      },
+      say,
+    });
+
+    expect(say).toHaveBeenCalledWith('Hi! What can I help you with?');
+    expect(runner.run).not.toHaveBeenCalled();
   });
 
   it('handles direct messages', async () => {
-    runner.run.mockResolvedValue('Working on it');
-    const event: GenericMessageEvent = {
-      type: 'message',
-      subtype: undefined,
-      user: 'U1',
-      text: 'create a PR for PROJ-123',
-      ts: '1234',
-      channel: 'D1',
-      channel_type: 'im',
-      event_ts: '1234',
-    };
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
 
-    await handlers['message']({ event, say } as unknown as SlackEventMiddlewareArgs<'message'>);
+    await app.messageHandlers[0]({
+      message: {
+        type: 'message',
+        subtype: undefined,
+        channel_type: 'im',
+        text: 'hello goose',
+        team: 'T1',
+        channel: 'D1',
+        user: 'U42',
+        ts: '1',
+        event_ts: '1',
+      },
+      say,
+    });
 
-    expect(runner.run).toHaveBeenCalledWith('create a PR for PROJ-123');
-    expect(say).toHaveBeenCalledWith({ text: 'Working on it', thread_ts: undefined });
+    expect(runner.run).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platform: 'slack',
+        teamId: 'T1',
+        channelId: 'D1',
+        userId: 'U42',
+        text: 'hello goose',
+      })
+    );
+    expect(say).toHaveBeenCalledWith('Done');
   });
 
-  it('ignores non-direct-message channel messages', async () => {
-    const event: GenericMessageEvent = {
-      type: 'message',
-      subtype: undefined,
-      user: 'U1',
-      text: 'hello',
-      ts: '1234',
-      channel: 'C1',
-      channel_type: 'channel',
-      event_ts: '1234',
-    };
+  it('ignores non-direct message channel events', async () => {
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
 
-    await handlers['message']({ event, say } as unknown as SlackEventMiddlewareArgs<'message'>);
+    await app.messageHandlers[0]({
+      message: {
+        type: 'message',
+        subtype: undefined,
+        channel_type: 'channel',
+        text: 'hello goose',
+        team: 'T1',
+        channel: 'C1',
+        user: 'U42',
+        ts: '1',
+        event_ts: '1',
+      },
+      say,
+    });
 
     expect(runner.run).not.toHaveBeenCalled();
     expect(say).not.toHaveBeenCalled();
   });
 
-  it('ignores bot messages', async () => {
-    const event: GenericMessageEvent = {
-      type: 'message',
-      subtype: undefined,
-      user: 'U1',
-      bot_id: 'B1',
-      text: 'hello',
-      ts: '1234',
-      channel: 'D1',
-      channel_type: 'im',
-      event_ts: '1234',
-    };
+  it('ignores direct messages with no text', async () => {
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
 
-    await handlers['message']({ event, say } as unknown as SlackEventMiddlewareArgs<'message'>);
+    await app.messageHandlers[0]({
+      message: {
+        type: 'message',
+        subtype: undefined,
+        channel_type: 'im',
+        text: undefined,
+        team: 'T1',
+        channel: 'D1',
+        user: 'U42',
+        ts: '1',
+        event_ts: '1',
+      },
+      say,
+    });
 
     expect(runner.run).not.toHaveBeenCalled();
+    expect(say).not.toHaveBeenCalled();
   });
 
-  it('replies with an error when goose fails', async () => {
-    runner.run.mockRejectedValue(new Error('Goose is down'));
-    const event: AppMentionEvent = {
-      type: 'app_mention',
-      user: 'U1',
-      text: '<@U2> do something',
-      ts: '1234',
-      channel: 'C1',
-      event_ts: '1234',
+  it('sends blocks when the runner returns them', async () => {
+    runner = {
+      run: jest.fn().mockResolvedValue({
+        text: 'Summary',
+        blocks: [{ type: 'section', text: { type: 'mrkdwn', text: 'Summary' } }],
+      }),
     };
 
-    await handlers['app_mention']({ event, say } as unknown as SlackEventMiddlewareArgs<'app_mention'>);
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
+
+    await app.eventHandlers['app_mention']({
+      event: {
+        type: 'app_mention',
+        text: '<@U123> summarize',
+        team: 'T1',
+        channel: 'C1',
+        user: 'U42',
+      },
+      say,
+    });
 
     expect(say).toHaveBeenCalledWith({
-      text: 'Sorry, something went wrong: Goose is down',
-      thread_ts: undefined,
+      text: 'Summary',
+      blocks: [{ type: 'section', text: { type: 'mrkdwn', text: 'Summary' } }],
     });
   });
 
-  it('replies with a fallback when goose returns empty output', async () => {
-    runner.run.mockResolvedValue('');
-    const event: AppMentionEvent = {
-      type: 'app_mention',
-      user: 'U1',
-      text: '<@U2> do something',
-      ts: '1234',
-      channel: 'C1',
-      event_ts: '1234',
-    };
+  it('surfaces runner errors as user-facing messages', async () => {
+    runner = { run: jest.fn().mockRejectedValue(new Error('boom')) };
 
-    await handlers['app_mention']({ event, say } as unknown as SlackEventMiddlewareArgs<'app_mention'>);
-
-    expect(say).toHaveBeenCalledWith({
-      text: 'Done — Goose finished with no output.',
-      thread_ts: undefined,
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
     });
+
+    await app.eventHandlers['app_mention']({
+      event: {
+        type: 'app_mention',
+        text: '<@U123> fail',
+        team: 'T1',
+        channel: 'C1',
+        user: 'U42',
+      },
+      say,
+    });
+
+    expect(say).toHaveBeenCalledWith(expect.stringContaining('boom'));
   });
 
-  it('handles direct messages with no text property', async () => {
-    runner.run.mockResolvedValue('ok');
-    const event = {
-      type: 'message',
-      subtype: undefined,
-      user: 'U1',
-      ts: '1234',
-      channel: 'D1',
-      channel_type: 'im',
-      event_ts: '1234',
-    } as unknown as GenericMessageEvent;
+  it('surfaces non-Error failures as user-facing messages', async () => {
+    runner = { run: jest.fn().mockRejectedValue('string failure') };
 
-    await handlers['message']({ event, say } as unknown as SlackEventMiddlewareArgs<'message'>);
-
-    expect(runner.run).not.toHaveBeenCalled();
-    expect(say).toHaveBeenCalledWith({
-      text: "Hi! I didn't catch that. What would you like me to do?",
-      thread_ts: undefined,
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
     });
+
+    await app.eventHandlers['app_mention']({
+      event: {
+        type: 'app_mention',
+        text: '<@U123> fail',
+        team: 'T1',
+        channel: 'C1',
+        user: 'U42',
+      },
+      say,
+    });
+
+    expect(say).toHaveBeenCalledWith(expect.stringContaining('string failure'));
   });
 
-  it('replies with an error for direct messages when goose fails', async () => {
-    runner.run.mockRejectedValue('unknown');
-    const event: GenericMessageEvent = {
-      type: 'message',
-      subtype: undefined,
-      user: 'U1',
-      text: 'do something',
-      ts: '1234',
-      channel: 'D1',
-      channel_type: 'im',
-      event_ts: '1234',
-    };
-
-    await handlers['message']({ event, say } as unknown as SlackEventMiddlewareArgs<'message'>);
-
-    expect(say).toHaveBeenCalledWith({
-      text: 'Sorry, something went wrong: unknown',
-      thread_ts: undefined,
+  it('fills in defaults when mention metadata is missing', async () => {
+    createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
     });
+
+    await app.eventHandlers['app_mention']({
+      event: {
+        type: 'app_mention',
+        text: '<@U123> help',
+      },
+      say,
+    });
+
+    expect(runner.run).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: 'unknown',
+        channelId: undefined,
+        userId: 'unknown',
+        threadId: undefined,
+      })
+    );
   });
 
-  it('asks for clarification when the message is empty after stripping mentions', async () => {
-    const event: AppMentionEvent = {
-      type: 'app_mention',
-      user: 'U1',
-      text: '<@U2>',
-      ts: '1234',
-      channel: 'C1',
-      event_ts: '1234',
-    };
-
-    await handlers['app_mention']({ event, say } as unknown as SlackEventMiddlewareArgs<'app_mention'>);
-
-    expect(runner.run).not.toHaveBeenCalled();
-    expect(say).toHaveBeenCalledWith({
-      text: "Hi! I didn't catch that. What would you like me to do?",
-      thread_ts: undefined,
+  it('starts and stops the underlying Bolt app', async () => {
+    const bot = createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+      port: 4000,
     });
-  });
 
-  it('starts and stops the underlying app', async () => {
     await bot.start();
-    expect(app.start).toHaveBeenCalled();
+    expect(app.start).toHaveBeenCalledWith(4000);
 
     await bot.stop();
     expect(app.stop).toHaveBeenCalled();
+  });
+
+  it('uses the default port when none is configured', async () => {
+    const bot = createSlackBot(app as unknown as BoltApp, store, runner, {
+      signingSecret: 'secret',
+      token: 'token',
+    });
+
+    await bot.start();
+    expect(app.start).toHaveBeenCalledWith(3000);
+  });
+
+  describe('createEchoRunner', () => {
+    it('returns the request text wrapped in a friendly message', async () => {
+      const response = await createEchoRunner().run({
+        platform: 'slack',
+        teamId: 'T1',
+        userId: 'U1',
+        text: 'hello',
+        sessionId: 's1',
+        correlationRoot: 'corr_1',
+      });
+
+      expect(response.text).toBe('Goose received: hello');
+    });
   });
 });

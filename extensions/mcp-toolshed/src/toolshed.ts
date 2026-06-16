@@ -1,4 +1,5 @@
-import type { SessionStore, PendingApproval } from 'framework-core';
+import { randomUUID } from 'node:crypto';
+import type { SessionStore, PendingApproval, AuditEntry } from 'framework-core';
 import {
   type AllowlistConfig,
   type GovernanceConfig,
@@ -18,23 +19,8 @@ export interface ToolContext {
 }
 
 export interface ToolResult {
-  status: 'success' | 'error' | 'blocked_by_allowlist' | 'throttled' | 'approval_required';
+  status: 'success' | 'error' | 'blocked_by_allowlist' | 'throttled' | 'approval_required' | 'approval_denied' | 'approval_timeout';
   data?: unknown;
-  error?: string;
-  retryAfterSeconds?: number;
-  approvalId?: string;
-}
-
-export interface AuditEntry {
-  timestamp: number;
-  correlationId: string;
-  minionType: string;
-  teamId: string;
-  serverAlias: string;
-  toolName: string;
-  params: unknown;
-  status: ToolResult['status'];
-  latencyMs: number;
   error?: string;
   retryAfterSeconds?: number;
   approvalId?: string;
@@ -47,7 +33,7 @@ export interface ToolshedState {
   adapters: Map<string, McpServerAdapter>;
   breakers: Map<string, CircuitBreaker>;
   rateLimiter: RateLimiter;
-  auditLogger: (entry: AuditEntry) => void;
+  auditLogger: (entry: AuditEntry) => void | Promise<void>;
   circuitBreakerConfig: CircuitBreakerConfig;
 }
 
@@ -63,6 +49,29 @@ export function resetToolshed(): void {
 
 export function getToolshedState(): ToolshedState | undefined {
   return globalState;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function waitForApproval(
+  store: SessionStore,
+  approvalId: string,
+  timeoutMs: number,
+  pollIntervalMs = 500
+): Promise<'approved' | 'denied' | 'timeout'> {
+  let remaining = timeoutMs;
+  while (remaining > 0) {
+    const approval = store.getApproval(approvalId);
+    if (approval?.decision) {
+      return approval.decision;
+    }
+    const sleepMs = Math.min(pollIntervalMs, remaining);
+    await sleep(sleepMs);
+    remaining -= sleepMs;
+  }
+  return 'timeout';
 }
 
 function getBreaker(
@@ -88,6 +97,22 @@ function truncate(value: unknown, maxLength: number): string {
   return `${serialized.slice(0, maxLength)}...[truncated]`;
 }
 
+export function resolveApproval(
+  approvalId: string,
+  decision: 'approved' | 'denied'
+): ToolResult {
+  const state = globalState;
+  if (!state) {
+    return { status: 'error', error: 'Toolshed not initialized' };
+  }
+  const approval = state.store.getApproval(approvalId);
+  if (!approval) {
+    return { status: 'error', error: `Approval ${approvalId} not found` };
+  }
+  state.store.resolveApproval(approvalId, decision);
+  return { status: 'success', data: { approvalId, decision } };
+}
+
 export async function executeTool(
   ctx: ToolContext,
   serverAlias: string,
@@ -102,7 +127,7 @@ export async function executeTool(
 
   const start = Date.now();
   const paramsRecord = typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : undefined;
-  const auditBase: Omit<AuditEntry, 'status' | 'latencyMs' | 'error' | 'retryAfterSeconds' | 'approvalId'> = {
+  const auditBase: Omit<AuditEntry, 'id' | 'status' | 'latencyMs' | 'error' | 'retryAfterSeconds' | 'approvalId'> = {
     timestamp: start,
     correlationId: ctx.correlationId,
     minionType: ctx.minionType,
@@ -114,6 +139,7 @@ export async function executeTool(
 
   function emit(result: ToolResult): ToolResult {
     const entry: AuditEntry = {
+      id: `audit_${randomUUID()}`,
       ...auditBase,
       status: result.status,
       latencyMs: Date.now() - start,
@@ -121,7 +147,12 @@ export async function executeTool(
       retryAfterSeconds: result.retryAfterSeconds,
       approvalId: result.approvalId,
     };
-    toolshedState.auditLogger(entry);
+    toolshedState.store.createAuditEntry(entry);
+    Promise.resolve()
+      .then(() => toolshedState.auditLogger(entry))
+      .catch((err) => {
+        console.error(`[audit] logger failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
     return result;
   }
 
@@ -173,40 +204,60 @@ export async function executeTool(
       timeoutAt: Date.now() + toolshedState.governance.approvalTimeoutMinutes * 60_000,
     };
     toolshedState.store.createApproval(approval);
-    return emit({
-      status: 'approval_required',
-      approvalId,
-      data: { message: 'Destructive action requires human approval', approvalId },
-    });
+
+    const timeoutMs = Math.max(0, approval.timeoutAt - approval.requestedAt);
+    const decision = await waitForApproval(toolshedState.store, approvalId, timeoutMs);
+
+    if (decision === 'denied') {
+      return emit({
+        status: 'approval_denied',
+        approvalId,
+        error: 'Destructive action was denied by the operator',
+      });
+    }
+
+    if (decision === 'timeout') {
+      return emit({
+        status: 'approval_timeout',
+        approvalId,
+        error: 'Approval request timed out',
+      });
+    }
   }
+
+  return emit(await doExecuteTool(ctx, serverAlias, toolName, params, breaker));
+}
+
+async function doExecuteTool(
+  ctx: ToolContext,
+  serverAlias: string,
+  toolName: string,
+  params: unknown,
+  breaker: CircuitBreaker
+): Promise<Pick<ToolResult, 'status' | 'data' | 'error'>> {
+  const state = globalState!;
 
   const cacheKeyValue = cacheKey(ctx, serverAlias, toolName, params);
-  const cached = toolshedState.store.getCachedToolCall(cacheKeyValue);
+  const cached = state.store.getCachedToolCall(cacheKeyValue);
   if (cached !== undefined) {
     breaker.recordSuccess();
-    return emit({ status: 'success', data: cached });
+    return { status: 'success', data: cached };
   }
 
-  const adapter = toolshedState.adapters.get(serverAlias);
+  const adapter = state.adapters.get(serverAlias);
   if (!adapter) {
     breaker.recordFailure();
-    return emit({
-      status: 'error',
-      error: `Unknown MCP server alias: ${serverAlias}`,
-    });
+    return { status: 'error', error: `Unknown MCP server alias: ${serverAlias}` };
   }
 
   try {
     const data = await adapter.callTool(toolName, params);
     breaker.recordSuccess();
-    toolshedState.store.setCachedToolCall(cacheKeyValue, data);
-    return emit({ status: 'success', data });
+    state.store.setCachedToolCall(cacheKeyValue, data);
+    return { status: 'success', data };
   } catch (err) {
     breaker.recordFailure();
-    return emit({
-      status: 'error',
-      error: err instanceof Error ? err.message : String(err),
-    });
+    return { status: 'error', error: err instanceof Error ? err.message : String(err) };
   }
 }
 

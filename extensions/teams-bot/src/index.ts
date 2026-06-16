@@ -1,11 +1,27 @@
-import { AcpClient } from './acp-client.js';
+import { Application, TeamsAdapter } from '@microsoft/teams-ai';
+import { createSqliteStore } from 'mcp-toolshed';
+import { createTeamsBot, createEchoRunner } from './teams-bot.js';
 
-const acpUrl = process.env.GOOSE_ACP_URL ?? 'ws://localhost:3284/acp';
-const acpToken = process.env.GOOSE_ACP_TOKEN ?? '';
+const botFrameworkAuthConfig = {
+  MicrosoftAppId: process.env.MICROSOFT_APP_ID ?? '',
+  MicrosoftAppPassword: process.env.MICROSOFT_APP_PASSWORD ?? '',
+  MicrosoftAppType: process.env.MICROSOFT_APP_TYPE ?? 'MultiTenant',
+};
 
-const client = new AcpClient(acpUrl, acpToken);
+const adapter = new TeamsAdapter(botFrameworkAuthConfig);
+const app = new Application({
+  adapter,
+  removeRecipientMention: true,
+  startTypingTimer: true,
+});
 
-client.connect().catch((err) => {
-  console.error('Teams bot failed to connect to Goose ACP', err);
+const store = createSqliteStore(process.env.SQLITE_PATH ?? ':memory:');
+const runner = createEchoRunner();
+const bot = createTeamsBot(app, store, runner, {
+  port: Number(process.env.PORT ?? 3978),
+});
+
+bot.start().catch((err) => {
+  console.error('Teams bot failed to start', err);
   process.exit(1);
 });

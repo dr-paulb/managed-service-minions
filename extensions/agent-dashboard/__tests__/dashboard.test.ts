@@ -1,29 +1,197 @@
-import { jest } from '@jest/globals';
-import { AcpClient } from '../src/acp-client.js';
+import http from 'node:http';
+import { createMemoryStore, type SessionStore } from 'mcp-toolshed';
 import { startDashboardServer } from '../src/dashboard.js';
 
+async function get(port: number, path: string): Promise<{ status: number; body: unknown }> {
+  return new Promise((resolve, reject) => {
+    const req = http.get(`http://localhost:${port}${path}`, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode ?? 0, body: data ? JSON.parse(data) : null });
+        } catch {
+          resolve({ status: res.statusCode ?? 0, body: data });
+        }
+      });
+    });
+    req.on('error', reject);
+  });
+}
+
 describe('startDashboardServer', () => {
-  const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  let server: { close: () => Promise<void>; port: number };
+  let store: SessionStore;
 
-  afterEach(() => {
-    logSpy.mockRestore();
+  beforeEach(async () => {
+    store = createMemoryStore();
+    server = await startDashboardServer(store, 0);
   });
 
-  it('connects the client and logs the listening port', async () => {
-    const client = new AcpClient('ws://localhost:3284/acp', 'token');
-    const connectSpy = jest.spyOn(client, 'connect').mockResolvedValue(undefined);
-
-    await startDashboardServer(client, 3001);
-
-    expect(connectSpy).toHaveBeenCalledTimes(1);
-    expect(logSpy).toHaveBeenCalledWith('Dashboard backend listening on port 3001');
+  afterEach(async () => {
+    await server.close();
   });
 
-  it('propagates connection errors', async () => {
-    const client = new AcpClient('ws://localhost:3284/acp', 'token');
-    const err = new Error('fail');
-    jest.spyOn(client, 'connect').mockRejectedValue(err);
+  it('returns ok from /health', async () => {
+    const response = await get(server.port, '/health');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: 'ok' });
+  });
 
-    await expect(startDashboardServer(client, 3001)).rejects.toBe(err);
+  it('lists sessions', async () => {
+    store.createSession({
+      id: 's1',
+      teamId: 'team-a',
+      platform: 'slack',
+      userId: 'u1',
+      correlationRoot: 'corr_1',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+
+    const response = await get(server.port, '/sessions');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      {
+        id: 's1',
+        teamId: 'team-a',
+        platform: 'slack',
+        userId: 'u1',
+        correlationRoot: 'corr_1',
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]);
+  });
+
+  it('returns a session by id', async () => {
+    store.createSession({
+      id: 's1',
+      teamId: 'team-a',
+      platform: 'slack',
+      userId: 'u1',
+      correlationRoot: 'corr_1',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+
+    const response = await get(server.port, '/sessions/s1');
+    expect(response.status).toBe(200);
+    expect((response.body as { id: string }).id).toBe('s1');
+  });
+
+  it('returns 404 for a missing session', async () => {
+    const response = await get(server.port, '/sessions/missing');
+    expect(response.status).toBe(404);
+  });
+
+  it('lists minion runs for a session', async () => {
+    store.createSession({
+      id: 's1',
+      teamId: 'team-a',
+      platform: 'slack',
+      userId: 'u1',
+      correlationRoot: 'corr_1',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    store.createMinionRun({
+      id: 'r1',
+      sessionId: 's1',
+      minionType: 'code-explorer',
+      correlationId: 'corr_1',
+      status: 'completed',
+      createdAt: 1,
+      completedAt: 2,
+    });
+
+    const response = await get(server.port, '/sessions/s1/minion-runs');
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(1);
+  });
+
+  it('returns a correlation tree', async () => {
+    store.createMinionRun({
+      id: 'r1',
+      sessionId: 's1',
+      minionType: 'code-explorer',
+      correlationId: 'corr_1',
+      status: 'completed',
+      createdAt: 1,
+      completedAt: 2,
+    });
+
+    const response = await get(server.port, '/correlation-tree/corr_1');
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(1);
+  });
+
+  it('lists pending approvals', async () => {
+    store.createApproval({
+      id: 'a1',
+      sessionId: 's1',
+      correlationId: 'corr_1',
+      serverAlias: 'github',
+      toolName: 'github_merge_pull_request',
+      paramsJson: '{}',
+      requestedAt: 1,
+      timeoutAt: 2,
+    });
+
+    const response = await get(server.port, '/pending-approvals');
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(1);
+  });
+
+  it('returns 404 for unknown routes', async () => {
+    const response = await get(server.port, '/unknown');
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 404 for unsupported methods on known routes', async () => {
+    const response = await new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+      const req = http.request(
+        { hostname: 'localhost', port: server.port, path: '/sessions', method: 'POST' },
+        (res) => {
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          res.on('end', () => {
+            try {
+              resolve({ status: res.statusCode ?? 0, body: data ? JSON.parse(data) : null });
+            } catch {
+              resolve({ status: res.statusCode ?? 0, body: data });
+            }
+          });
+        }
+      );
+      req.on('error', reject);
+      req.end();
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 500 when the store throws', async () => {
+    store.listSessions = () => {
+      throw new Error('store failure');
+    };
+
+    const response = await get(server.port, '/sessions');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'store failure' });
+  });
+
+  it('returns 500 when the store throws a non-error', async () => {
+    store.listSessions = () => {
+      throw 'string failure';
+    };
+
+    const response = await get(server.port, '/sessions');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'string failure' });
   });
 });

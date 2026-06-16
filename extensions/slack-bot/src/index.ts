@@ -1,37 +1,23 @@
 import { App } from '@slack/bolt';
-import { spawn } from 'node:child_process';
-import { loadConfig } from './config.js';
-import { createGooseRunner } from './goose-runner.js';
-import { createSlackBot } from './slack-bot.js';
+import { createSqliteStore } from 'mcp-toolshed';
+import { createSlackBot, createEchoRunner } from './slack-bot.js';
 
-function main(): void {
-  const config = loadConfig();
+const config = {
+  signingSecret: process.env.SLACK_SIGNING_SECRET ?? '',
+  token: process.env.SLACK_BOT_TOKEN ?? '',
+  port: Number(process.env.PORT ?? 3000),
+};
 
-  const app = new App({
-    token: config.slackBotToken,
-    signingSecret: config.slackSigningSecret,
-    appToken: config.slackAppToken,
-    socketMode: true,
-  });
+const app = new App({
+  signingSecret: config.signingSecret,
+  token: config.token,
+});
 
-  const runner = createGooseRunner(
-    spawn,
-    config.gooseExecutable,
-    config.gooseRecipe,
-    config.goosePluginPath
-  );
+const store = createSqliteStore(process.env.SQLITE_PATH ?? ':memory:');
+const runner = createEchoRunner();
+const bot = createSlackBot(app, store, runner, config);
 
-  const bot = createSlackBot(app, config, runner);
-
-  bot.start().catch((err) => {
-    console.error('Slack bot failed to start', err);
-    process.exit(1);
-  });
-}
-
-try {
-  main();
-} catch (err) {
-  console.error(err instanceof Error ? err.message : String(err));
+bot.start().catch((err) => {
+  console.error('Slack bot failed to start', err);
   process.exit(1);
-}
+});
