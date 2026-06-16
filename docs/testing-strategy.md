@@ -373,6 +373,8 @@ These **must pass 100%** before any deployment.
 
 ## Performance Tests
 
+A k6 skeleton is provided at `test/performance/load-test.js`. It exercises the dashboard `/health` endpoint and can be extended to cover orchestrator pipelines.
+
 | Test | Threshold | Measurement |
 |---|---|---|
 | Intent classification latency | p95 < 500ms | Wall clock from message receipt to intent return |
@@ -383,20 +385,26 @@ These **must pass 100%** before any deployment.
 | 6 parallel PR reviews | All complete within 5 minutes | Max wall clock of parallel Code Reviewer runs |
 | Cold start (scale from zero) | < 20 seconds | Time to first byte after scale-to-zero |
 
+Run locally:
+
+```bash
+k6 run -e BASE_URL=https://staging.example.com test/performance/load-test.js
+```
+
 ---
 
 ## Chaos Tests
 
-Run weekly (or on demand) to verify resilience.
+Chaos scripts live in `test/chaos/` and are run on demand against staging.
 
-| # | Chaos Experiment | Expected Behavior |
-|---|---|---|
-| 1 | Kill orchestrator replica mid-pipeline | KEDA respawns. Pipeline resumes from Service Bus. SQLite restored from Blob. |
-| 2 | Block ServiceNow MCP at network level | Circuit breaker opens after 3 failures. Minions fast-fail. Circuit closes after recovery. |
-| 3 | Exhaust GitHub rate limit | Toolshed throttles. Minions retry with backoff. No calls reach GitHub while throttled. |
-| 4 | Fill Service Bus DLQ | Alert fires (Sev-2). Operator replays from dashboard. Messages processed on replay. |
-| 5 | AI Foundry returns 429 for 10 minutes | Minions retry with exponential backoff. Fast-tier tasks continue. Reasoning-tier tasks queue. |
-| 6 | Corrupt SQLite file | Orchestrator detects on startup. Restores from latest Blob backup. RPO verified < 15 min. |
+| # | Script | Chaos Experiment | Expected Behavior |
+|---|---|---|---|
+| 1 | `test/chaos/kill-orchestrator.sh` | Kill orchestrator replica mid-pipeline | KEDA respawns. Pipeline resumes from Service Bus. SQLite restored from Blob. |
+| 2 | *(manual)* | Block ServiceNow MCP at network level | Circuit breaker opens after 3 failures. Minions fast-fail. Circuit closes after recovery. |
+| 3 | *(manual)* | Exhaust GitHub rate limit | Toolshed throttles. Minions retry with backoff. No calls reach GitHub while throttled. |
+| 4 | *(manual)* | Fill Service Bus DLQ | Alert fires (Sev-2). Operator replays from dashboard. Messages processed on replay. |
+| 5 | *(manual)* | AI Foundry returns 429 for 10 minutes | Minions retry with exponential backoff. Fast-tier tasks continue. Reasoning-tier tasks queue. |
+| 6 | `test/chaos/corrupt-sqlite.sh` | Corrupt SQLite file | Orchestrator detects on startup. Restores from latest Blob backup. RPO verified < 15 min. |
 
 ---
 
@@ -463,12 +471,10 @@ test/
 │   └── tenancy-isolation.test.ts
 │
 ├── performance/
-│   ├── load-test.js        # k6 or Artillery script
-│   └── benchmarks.ts
+│   └── load-test.js        # k6 skeleton
 │
 └── chaos/
     ├── kill-orchestrator.sh
-    ├── exhaust-rate-limit.sh
     └── corrupt-sqlite.sh
 ```
 
