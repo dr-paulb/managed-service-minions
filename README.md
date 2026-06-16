@@ -1,4 +1,4 @@
-# Ninions Agent Framework
+# Minions Agent Framework
 
 > Multi-agent orchestration for engineering operations. Mention `@minions` in Slack or Microsoft Teams and delegate complex work — PR reviews, ticket lookups, branch fixes, security audits — to a team of specialized sub-agents ("minions") working through a governed MCP toolshed.
 
