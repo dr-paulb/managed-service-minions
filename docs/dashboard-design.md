@@ -86,7 +86,7 @@ Visualize the full execution DAG for a single session. Every minion and every to
 │                                                             │
 │  Channel: teams / #general          User: alice@org.com     │
 │  Intent: ticket→fix→pr              Status: ✅ completed    │
-│  Message: "@goose fix INC00421 and create a PR"            │
+│  Message: "@minions fix INC00421 and create a PR"            │
 │  Duration: 52s                       Tokens: 47,230         │
 │                                                             │
 │  ┌─── Correlation Tree ──────────────────────────────────┐  │

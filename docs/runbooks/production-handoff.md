@@ -41,7 +41,7 @@
 |---|---|---|---|---|---|
 | 14 | Slack app installed and signing secret/App token configured | Slack app config page + Key Vault | | | ☐ |
 | 15 | Teams bot registered and MicrosoftAppPassword in Key Vault | Azure Bot resource + Key Vault | | | ☐ |
-| 16 | Bot endpoints reachable from Slack/Teams | Test `@goose hello` in each channel | | | ☐ |
+| 16 | Bot endpoints reachable from Slack/Teams | Test `@minions hello` in each channel | | | ☐ |
 
 ---
 
@@ -58,7 +58,7 @@
 
 ## Post-launch support model
 
-- **L1 support:** Slack/Teams channel `#goose-support` — triage user questions and bot connectivity.
+- **L1 support:** Slack/Teams channel `#minions-support` — triage user questions and bot connectivity.
 - **L2 support:** Platform on-call — handles scaling, stuck approvals, DLQ replay.
 - **L3 support:** Engineering team — code bugs, prompt tuning, governance changes.
 - **Escalation:** Page on-call if orchestrator is scaled to zero for > 5 minutes or tool-call failure rate > 10%.

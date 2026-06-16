@@ -4,7 +4,7 @@
 
 ## Purpose / Big Picture
 
-After this work, a user can mention `@goose` in Slack or Microsoft Teams and ask for real engineering tasks — for example, "Review PR #342", "What's the status of INC00421?", or "Fix work item #567 and create a PR". Goose, guided by the framework's plugin, classifies the request, delegates to specialized sub-agents ("minions"), calls GitHub, Azure DevOps, ServiceNow, Jira, filesystem, and shell tools through a governed MCP toolshed, and returns a structured, traceable answer back to the chat channel. Operators can reconstruct every session from a correlation tree, audit every tool call, approve destructive actions, and observe health and cost through Azure dashboards.
+After this work, a user can mention `@minions` in Slack or Microsoft Teams and ask for real engineering tasks — for example, "Review PR #342", "What's the status of INC00421?", or "Fix work item #567 and create a PR". Goose, guided by the framework's plugin, classifies the request, delegates to specialized sub-agents ("minions"), calls GitHub, Azure DevOps, ServiceNow, Jira, filesystem, and shell tools through a governed MCP toolshed, and returns a structured, traceable answer back to the chat channel. Operators can reconstruct every session from a correlation tree, audit every tool call, approve destructive actions, and observe health and cost through Azure dashboards.
 
 This plan turns the design documents in this repository — `../delivery-specification.md`, `../high-level-design.md`, `../testing-strategy.md`, `../agent-led-development.md`, the ADRs, and the related architecture notes — into a working, deployed system.
 
@@ -584,7 +584,7 @@ These commands assume you are at the repository root (`/Volumes/ExtDisk1/Minions
    goose run \
      --with-extension "node extensions/mcp-toolshed/dist/index.js" \
      --with-builtin developer,analyze,chatrecall,orchestrator \
-     -t "@goose review PR #342"
+     -t "@minions review PR #342"
    ```
    `delegate` and `load` are provided by the built-in `Summon (delegation)` extension, which is enabled by default. If it is disabled in your config, add `summon` to the `--with-builtin` list or enable it in `~/.config/goose/config.yaml`.
 
@@ -646,11 +646,11 @@ These commands assume you are at the repository root (`/Volumes/ExtDisk1/Minions
 
 The work is complete when the following behaviors are observable. These map directly to `../delivery-specification.md` §7.
 
-1. **Intent classification and dispatch.** Send a Slack message `@goose review PR #342`. The orchestrator agent classifies intent `code_review`, delegates to the Code Reviewer agent, and posts a structured review to the channel. The correlation tree in the dashboard shows `corr_xxxx`, `corr_xxxx.1`, and `corr_xxxx.1.github-001`.
+1. **Intent classification and dispatch.** Send a Slack message `@minions review PR #342`. The orchestrator agent classifies intent `code_review`, delegates to the Code Reviewer agent, and posts a structured review to the channel. The correlation tree in the dashboard shows `corr_xxxx`, `corr_xxxx.1`, and `corr_xxxx.1.github-001`.
 
-2. **Ticket lookup across ServiceNow and Azure DevOps.** Ask `@goose what's the status of INC00421?` or `@goose what's the status of AB#1234?`. The bot returns ticket details and any related PRs/issues.
+2. **Ticket lookup across ServiceNow and Azure DevOps.** Ask `@minions what's the status of INC00421?` or `@minions what's the status of AB#1234?`. The bot returns ticket details and any related PRs/issues.
 
-3. **Ticket→fix→PR pipeline.** Ask `@goose fix work item #567 and create a PR`. The bot creates a branch, commits a fix, opens a PR, links it to the work item, and posts the PR URL. Tool calls are logged with correlation IDs.
+3. **Ticket→fix→PR pipeline.** Ask `@minions fix work item #567 and create a PR`. The bot creates a branch, commits a fix, opens a PR, links it to the work item, and posts the PR URL. Tool calls are logged with correlation IDs.
 
 4. **Allowlist enforcement and audit.** A Ticket Analyst that tries to call `github.create_pr` is blocked by the toolshed, receives an error, and a security event is written to the tool-call log.
 
@@ -664,7 +664,7 @@ The work is complete when the following behaviors are observable. These map dire
 
 9. **Prompt quality gates.** A prompt change that fails the prompt-quality harness is blocked from merge. A canary prompt is rolled back if review acceptance drops.
 
-10. **Human approval for destructive actions.** Asking `@goose merge PR #342` pauses, posts an approval card, and only merges after a human clicks Approve.
+10. **Human approval for destructive actions.** Asking `@minions merge PR #342` pauses, posts an approval card, and only merges after a human clicks Approve.
 
 11. **100% code coverage.** `pnpm test` reports 100% line, branch, function, and statement coverage for `packages/framework-core/` and every `extensions/*/src/` directory. No PR may lower coverage.
 

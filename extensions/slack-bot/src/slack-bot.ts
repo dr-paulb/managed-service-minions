@@ -17,11 +17,11 @@ export interface SlackBotConfig {
 
 /**
  * A minimal runner that echoes the request back. Useful for local smoke tests
- * until the real Goose orchestrator is wired in.
+ * until the real Minions orchestrator is wired in.
  */
 export function createEchoRunner(): IngressRunner {
   return {
-    run: async (request) => ({ text: `Goose received: ${request.text}` }),
+    run: async (request) => ({ text: `Minions received: ${request.text}` }),
   };
 }
 

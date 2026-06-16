@@ -39,7 +39,7 @@ C4Context
     System_Ext(ai, "Azure AI Foundry", "LLM inference & content safety")
     System_Ext(monitor, "Azure Monitor", "Logs, metrics, alerts")
     
-    Rel(user, chat, "Sends @goose", "HTTPS")
+    Rel(user, chat, "Sends @minions", "HTTPS")
     Rel(chat, goose, "Messages & responses", "HTTPS")
     Rel(goose, scm, "PRs, repos, work items", "HTTPS/MCP")
     Rel(goose, tickets, "Query incidents & issues", "HTTPS/MCP")
@@ -68,8 +68,8 @@ This diagram answers: *"What does the framework touch, and what touches it?"*
     Person(user, "User", "Developer or Operator")
 
     System_Boundary(aca, "Azure Container Apps") {
-        Container(slack_bot, "Slack Bot", "Goose Extension", "Receives @goose from Slack. Forwards to orchestrator.")
-        Container(teams_bot, "Teams Bot", "Goose Extension", "Receives @goose from Teams. Renders Adaptive Cards.")
+        Container(slack_bot, "Slack Bot", "Goose Extension", "Receives @minions from Slack. Forwards to orchestrator.")
+        Container(teams_bot, "Teams Bot", "Goose Extension", "Receives @minions from Teams. Renders Adaptive Cards.")
         Container(orchestrator, "Orchestrator", "Goose Extension", "Intent classification, task decomposition, minion lifecycle, session state.")
         Container(toolshed, "MCP Toolshed", "Goose Extension", "MCP connection pool, allowlist enforcement, rate limiting, tool call logging.")
         ContainerDb(sqlite, "SQLite", "Embedded", "Session state, minion runs, pending approvals. Periodic backup to Blob.")
@@ -95,8 +95,8 @@ This diagram answers: *"What does the framework touch, and what touches it?"*
         System_Ext(teams_api, "Teams API", "")
     }
 
-    Rel(user, slack_api, "Sends @goose", "HTTPS")
-    Rel(user, teams_api, "Sends @goose", "HTTPS")
+    Rel(user, slack_api, "Sends @minions", "HTTPS")
+    Rel(user, teams_api, "Sends @minions", "HTTPS")
     Rel(slack_api, slack_bot, "Events", "HTTPS")
     Rel(teams_api, teams_bot, "Events", "HTTPS")
     Rel(slack_bot, orchestrator, "Dispatch", "Internal")
@@ -392,7 +392,7 @@ sequenceDiagram
     participant MCP as MCP Toolshed
     participant ADO as Azure DevOps MCP
     
-    User->>Teams: "@goose what's the status of AB#1234?"
+    User->>Teams: "@minions what's the status of AB#1234?"
     Teams->>Orch: dispatch(message, user, channel)
     
     Note over Orch: Intent: ticket_lookup<br/>Platform: ado<br/>Complexity: simple → sync
@@ -450,7 +450,7 @@ sequenceDiagram
     participant SN as ServiceNow MCP
     participant Git as Git MCP
     
-    User->>Slack: "@goose fix INC00421 and create a PR"
+    User->>Slack: "@minions fix INC00421 and create a PR"
     Slack->>Orch: dispatch(message, user, channel)
     
     Note over Orch: Intent: ticket→fix→pr<br/>Complexity: complex → async

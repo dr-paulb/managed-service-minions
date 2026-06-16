@@ -297,7 +297,7 @@ describe('createTeamsBot', () => {
         correlationRoot: 'corr_1',
       });
 
-      expect(response.text).toBe('Goose received: hello');
+      expect(response.text).toBe('Minions received: hello');
     });
   });
 });
