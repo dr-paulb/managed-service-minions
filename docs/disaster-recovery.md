@@ -1,7 +1,7 @@
 # Disaster Recovery
 
 > **Date:** 2026-06-06  
-> **Status:** Draft  
+> **Status:** Final — operational runbook available at [`docs/runbooks/disaster-recovery.md`](./runbooks/disaster-recovery.md)  
 
 ---
 

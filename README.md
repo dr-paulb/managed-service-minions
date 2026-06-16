@@ -4,6 +4,8 @@
 
 [![CI](https://github.com/dr-pabs/managed-service-minions/actions/workflows/ci.yml/badge.svg)](https://github.com/dr-pabs/managed-service-minions/actions/workflows/ci.yml)
 
+> **Status:** v1 build complete. All TypeScript packages pass typecheck, build, lint, and tests with 100% coverage. Operational runbooks and DR/test scaffolding are in `docs/runbooks/`, `test/performance/`, and `test/chaos/`.
+
 ---
 
 ## Table of Contents
@@ -296,7 +298,7 @@ terraform plan -var-file=environments/dev/terraform.tfvars
 terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
-See [`./docs/azure-architecture.md`](./docs/azure-architecture.md), [`./docs/terraform-bootstrap.md`](./docs/terraform-bootstrap.md), and [`./docs/disaster-recovery.md`](./docs/disaster-recovery.md) for details.
+See [`./docs/azure-architecture.md`](./docs/azure-architecture.md), [`./docs/terraform-bootstrap.md`](./docs/terraform-bootstrap.md), [`./docs/disaster-recovery.md`](./docs/disaster-recovery.md), and the operational runbooks in [`./docs/runbooks/`](./docs/runbooks/) for details.
 
 ---
 
@@ -320,11 +322,11 @@ The implementation plan is in [`docs/execplan/execution-plan.md`](./docs/execpla
 | Milestone | Status | Description |
 |---|---|---|
 | **Milestone 0** | ✅ Complete | Bootstrap plugin + MCP monorepo, build/test/lint pipeline, 100% coverage gates |
-| **Milestone 1** | 🚧 In progress | MCP toolshed wiring, agent prompts, SQLite session store, first end-to-end minion dispatch |
-| **Milestone 2** | ⬜ | Orchestrator skill, DAG decomposition, structured output schemas, prompt-quality harness |
-| **Milestone 3** | ⬜ | GitHub/ADO/ServiceNow/Jira pipelines; ticket→fix→PR; approval gating |
-| **Milestone 4** | ⬜ | Azure infrastructure, Container Apps, Service Bus, observability, dashboard, CI/CD |
-| **Milestone 5** | ⬜ | Acceptance, DR validation, performance/chaos testing, production handoff |
+| **Milestone 1** | ✅ Complete | MCP toolshed wiring, agent prompts, SQLite session store, first end-to-end minion dispatch |
+| **Milestone 2** | ✅ Complete | Orchestrator skill, DAG decomposition, structured output schemas, prompt-quality harness |
+| **Milestone 3** | ✅ Complete | GitHub/ADO/ServiceNow/Jira pipelines; ticket→fix→PR; approval gating |
+| **Milestone 4** | ✅ Complete | Azure infrastructure, Container Apps, Service Bus, observability, dashboard, CI/CD |
+| **Milestone 5** | ✅ Build artifacts complete | Integration/E2E/acceptance tests, DR/handoff/security runbooks, performance/chaos scaffolding; staging validation and formal sign-off remain for production handoff |
 
 ---
 

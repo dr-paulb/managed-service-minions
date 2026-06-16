@@ -11,6 +11,7 @@ Primary source documents include:
 - `./docs/agent-led-development.md` — agent/role mapping and operating model
 - `docs/low-level-design.md` — low-level design covering Goose primitives and framework additions
 - `docs/execplan/execution-plan.md` — living execution plan for implementation
+- `docs/runbooks/` — operational runbooks for disaster recovery, production handoff, and security review
 - `adrs/` — architecture decisions and governance rationale
 
 When making changes, prefer to keep these artifacts aligned with one another and with the ADRs.
@@ -36,15 +37,20 @@ The repository now contains both design/spec artifacts and runnable scaffolding:
 - Root `package.json`, `pnpm-workspace.yaml`, and `tsconfig.json` define a pnpm monorepo.
 - `packages/framework-core/` — shared TypeScript library.
 - `extensions/*/` — MCP server extensions (mcp-toolshed, slack-bot, teams-bot, agent-dashboard).
-- `infra/` — infrastructure placeholders.
-- `test/` — test harness placeholder.
+- `infra/` — infrastructure as code (Terraform) and tests.
+- `test/` — unit, integration, E2E, acceptance, and prompt-quality harnesses.
+- `test/performance/` — k6 load-test skeleton for staging performance validation.
+- `test/chaos/` — shell scripts for operational chaos tests.
+- `docs/runbooks/` — operational runbooks for DR, handoff, and security review.
 
 Common commands (after `pnpm install`):
 - `pnpm typecheck` — run TypeScript `--noEmit` across the monorepo.
 - `pnpm build` — build all packages and extensions.
 - `pnpm lint` — run ESLint across the monorepo.
 - `pnpm test` — run unit tests in each package.
-- `pnpm test:integration` — run integration tests (placeholder).
+- `pnpm test:integration` — run integration tests.
+- `pnpm test:e2e` — run E2E smoke tests.
+- `pnpm test:prompts` — run prompt-quality harness.
 
 Quality gates:
 - **100% code coverage** is required for all runnable TypeScript code in `packages/` and `extensions/`. The CI pipeline fails if any package drops below 100% line, branch, function, and statement coverage. See `./docs/testing-strategy.md` for the full coverage policy.
