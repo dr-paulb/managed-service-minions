@@ -121,7 +121,7 @@ The Goose Agent Framework extends the core Goose platform into a **multi-agent o
 - **Type:** Goose extension (`slack-bot`)
 - **Phase:** 1
 - **SDK:** Slack Bolt (Python or Node.js)
-- **Mechanism:** Listens for `@goose` mentions in channels or DMs
+- **Mechanism:** Listens for `@minions` mentions in channels or DMs
 - **Flow:**
   1. Receive message event
   2. Post "thinking..." reaction
@@ -135,7 +135,7 @@ The Goose Agent Framework extends the core Goose platform into a **multi-agent o
 - **Type:** Goose extension (`teams-bot`)
 - **Phase:** 1 (peer priority with Slack)
 - **SDK:** Microsoft 365 Agent SDK (successor to the deprecated Bot Framework SDK)
-- **Mechanism:** Listens for `@goose` mentions in channels, group chats, and personal chats
+- **Mechanism:** Listens for `@minions` mentions in channels, group chats, and personal chats
 - **Flow:**
   1. Receive message activity from Microsoft 365 Agent SDK
   2. Post "typing" indicator
@@ -902,7 +902,7 @@ Framework bugs, feature requests, and roadmap items are tracked in GitHub Issues
 ### Flow 1: Simple Query — "What's the status of AB#1234?"
 
 ```
-Teams: "@goose what's the status of AB#1234?"
+Teams: "@minions what's the status of AB#1234?"
 
 1. Teams Bot → Orchestrator (intent: ticket_lookup, platform: ado)
    Root correlation ID: corr_f7e8d9
@@ -920,7 +920,7 @@ Teams: "@goose what's the status of AB#1234?"
 ### Flow 2: Complex Pipeline — "Fix work item #567 in Azure DevOps and create a PR"
 
 ```
-Teams: "@goose fix work item #567 and create a PR"
+Teams: "@minions fix work item #567 and create a PR"
 
 1. Teams Bot → Orchestrator (intent: ticket→fix→pr, platform: ado)
    Root correlation ID: corr_a1b2c3
@@ -995,7 +995,7 @@ Cron: 0 8 * * 1-5
 ### Flow 4: Multi-Platform Ticket Drill-Down
 
 ```
-Slack: "@goose summarize all Sev-1 incidents and cross-reference with ADO work items"
+Slack: "@minions summarize all Sev-1 incidents and cross-reference with ADO work items"
 
 1. Slack Bot → Orchestrator (intent: ticket_summary_crossref)
 
@@ -1033,8 +1033,8 @@ Slack: "@goose summarize all Sev-1 incidents and cross-reference with ADO work i
 | 2 | Integrate GitHub MCP | Full read/write: PRs, issues, branches, commits |
 | 3 | Integrate Azure DevOps MCP | Work items, PRs, repos, builds, WIQL queries |
 | 4 | Integrate Filesystem + Git MCP | Read/write, search, git operations |
-| 5 | Build `slack-bot` extension | Receive `@goose` mentions, post threaded replies |
-| 6 | Build `teams-bot` extension | Receive `@goose` mentions, post Adaptive Cards |
+| 5 | Build `slack-bot` extension | Receive `@minions` mentions, post threaded replies |
+| 6 | Build `teams-bot` extension | Receive `@minions` mentions, post Adaptive Cards |
 | 7 | Build `orchestrator` extension (skeleton) | Intent classification, single-minion dispatch, correlation IDs |
 | 8 | Set up Azure infrastructure | Container Apps environment, Service Bus, Table Storage, Key Vault |
 

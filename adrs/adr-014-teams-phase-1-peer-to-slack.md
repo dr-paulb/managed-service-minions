@@ -31,7 +31,7 @@ Microsoft Teams is a **Phase 1 priority, on par with Slack**. Both bots are buil
 - **No marginal platform cost** — The Microsoft 365 Agent SDK (successor to the deprecated Bot Framework SDK, which powers Teams agents) is free. The only cost is the compute to run the bot container (covered by Container Apps).
 - **Adaptive Cards** — Teams supports a richer interaction model than Slack Block Kit. Cards can include actionable buttons ("Approve", "Request Changes"), deep links to Azure DevOps work items, and structured data.
 - **Meeting integration** — Future capability: add Goose to a Teams meeting, ask it to summarize technical discussions, create follow-up work items.
-- **Message extensions** — Teams supports search-based commands from the compose box. A user can type `@goose review PR 342` without switching context.
+- **Message extensions** — Teams supports search-based commands from the compose box. A user can type `@minions review PR 342` without switching context.
 
 ## Consequences
 

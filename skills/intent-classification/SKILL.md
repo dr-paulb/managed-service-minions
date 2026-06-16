@@ -37,7 +37,7 @@ Return JSON matching `schemas/intent.json`:
 - `complex` — requires a DAG of multiple minions (`ticket_fix_pr`, batch reviews, multi-ticket summaries).
 
 ## Example
-Input: `"@goose review PR #342"`
+Input: `"@minions review PR #342"`
 Output:
 ```json
 {

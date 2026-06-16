@@ -125,7 +125,7 @@ describe('createSlackBot', () => {
         type: 'message',
         subtype: undefined,
         channel_type: 'im',
-        text: 'hello goose',
+        text: 'hello minions',
         team: 'T1',
         channel: 'D1',
         user: 'U42',
@@ -141,7 +141,7 @@ describe('createSlackBot', () => {
         teamId: 'T1',
         channelId: 'D1',
         userId: 'U42',
-        text: 'hello goose',
+        text: 'hello minions',
       })
     );
     expect(say).toHaveBeenCalledWith('Done');
@@ -158,7 +158,7 @@ describe('createSlackBot', () => {
         type: 'message',
         subtype: undefined,
         channel_type: 'channel',
-        text: 'hello goose',
+        text: 'hello minions',
         team: 'T1',
         channel: 'C1',
         user: 'U42',
@@ -330,7 +330,7 @@ describe('createSlackBot', () => {
         correlationRoot: 'corr_1',
       });
 
-      expect(response.text).toBe('Goose received: hello');
+      expect(response.text).toBe('Minions received: hello');
     });
   });
 });

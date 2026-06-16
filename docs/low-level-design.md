@@ -330,7 +330,7 @@ After the WebSocket upgrade, all traffic is JSON-RPC 2.0 text frames.
   "params": {
     "sessionId": "sess_abc123",
     "prompt": [
-      { "type": "user", "text": "@goose review PR #342" }
+      { "type": "user", "text": "@minions review PR #342" }
     ]
   }
 }
@@ -898,7 +898,7 @@ The chat bots are thin adapters between Slack/Teams and the Goose ACP server. Th
 
 `extensions/slack-bot/` uses Slack Bolt and an ACP client library.
 
-- Receives `@goose` mentions and DMs via Slack Events API.
+- Receives `@minions` mentions and DMs via Slack Events API.
 - Verifies Slack signing secret.
 - Opens a WebSocket ACP connection to `goose serve`.
 - Sends `session/new` (if needed) and `session/prompt` for each message.
@@ -910,7 +910,7 @@ The chat bots are thin adapters between Slack/Teams and the Goose ACP server. Th
 
 `extensions/teams-bot/` uses the Microsoft 365 Agent SDK and an ACP client library.
 
-- Receives `@goose` mentions in channels, group chats, and personal chats.
+- Receives `@minions` mentions in channels, group chats, and personal chats.
 - Authenticates via Azure AD / Microsoft Entra ID.
 - Connects to `goose serve` via ACP WebSocket.
 - Renders Adaptive Cards for messages, tool results, and permission requests.
@@ -1177,7 +1177,7 @@ The low-level design supports the testing pyramid from `./testing-strategy.md`:
 | Unit | Jest tests for `packages/framework-core` and each extension. **100% coverage required.** |
 | Integration | Mock MCP servers; run end-to-end `delegate` flows. |
 | Prompt quality | Compare candidate prompts against baselines on test cases. |
-| E2E | Run `@goose` commands in a staging Slack/Teams workspace. |
+| E2E | Run `@minions` commands in a staging Slack/Teams workspace. |
 | Performance | k6/Artillery against `goose serve` endpoints. |
 | Chaos | Kill orchestrator, block MCP server, exhaust rate limits. |
 
@@ -1315,4 +1315,4 @@ export interface SessionStore {
 | Observability | stdout logs | Structured logging, Log Analytics, Grafana dashboards |
 | Deployment | Local CLI | Azure Bicep, Container Apps, CI/CD |
 
-The result is a Goose-native multi-agent system that feels like a single `@goose` assistant in chat, but is composed of governed, observable, cost-controlled minions behind the scenes.
+The result is a Goose-native multi-agent system that feels like a single `@minions` assistant in chat, but is composed of governed, observable, cost-controlled minions behind the scenes.

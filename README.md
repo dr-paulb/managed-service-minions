@@ -1,6 +1,6 @@
 # Goose Agent Framework
 
-> Multi-agent orchestration for engineering operations. Mention `@goose` in Slack or Microsoft Teams and delegate complex work — PR reviews, ticket lookups, branch fixes, security audits — to a team of specialized sub-agents ("minions") working through a governed MCP toolshed.
+> Multi-agent orchestration for engineering operations. Mention `@minions` in Slack or Microsoft Teams and delegate complex work — PR reviews, ticket lookups, branch fixes, security audits — to a team of specialized sub-agents ("minions") working through a governed MCP toolshed.
 
 [![CI](https://github.com/dr-pabs/managed-service-minions/actions/workflows/ci.yml/badge.svg)](https://github.com/dr-pabs/managed-service-minions/actions/workflows/ci.yml)
 
@@ -36,7 +36,7 @@ The Goose Agent Framework extends the [Goose](https://goose-docs.ai/) agent runt
 
 A user can say:
 
-> "@goose review PR #342"
+> "@minions review PR #342"
 
 The orchestrator classifies the intent, delegates to a **Code Reviewer** minion, lets it read the PR and related code through the toolshed, and posts a structured review back to the channel — fully correlated and audited.
 
@@ -243,7 +243,7 @@ orchestrator:
 goose run \
   --with-extension "node extensions/mcp-toolshed/dist/index.js" \
   --with-builtin developer,analyze,chatrecall,orchestrator \
-  -t "@goose review PR #342"
+  -t "@minions review PR #342"
 ```
 
 ### 5. Validate recipes
